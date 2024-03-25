@@ -1,4 +1,4 @@
-<p align="center"><a href="https://qedprotocol.com"><img src="images/plonky25_diagram.png" height="300" alt="plonky2.5 flow diagram" /></a></p>
+<p align="center"><a href="https://qedprotocol.com"><img src="images/plonky25_diagram.png" height="312" alt="plonky2.5 flow diagram" /></a></p>
 
 <h1 align="center">plonky2.5</h1>
 
