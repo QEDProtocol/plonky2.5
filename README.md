@@ -10,6 +10,21 @@
 
 ## Getting Started
 
+Generate plonky3 fibonacci(64) proof
+```
+git clone -b fib-example https://github.com/QEDProtocol/plonky3-fibonacci
+cd plonky3-fibonacci/keccak-air
+cargo run --example prove_goldilocks_poseidon2_fibonacci
+```
+
+Clone this repo and copy the generated proof to `src/p3/`
+```
+cd ...
+git clone https://github.com/QEDProtocol/plonky2.5
+cd plonky2.5
+cp ../plonky3-fibonacci/keccak-air/proof_fibonacci.json src/p3/
+```
+
 Verify a plonky3 fibonacci(64) proof in a plonky2 proof
 ```
 cargo test --release --package plonky2_5 --lib -- 'p3::tests::test_verify_plonky3_proof' --exact --nocapture

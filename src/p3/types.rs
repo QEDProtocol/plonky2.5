@@ -629,7 +629,7 @@ impl<F: RichField + Extendable<D>, const D: usize, const E: usize>
     ) -> BinomialExtensionTarget<Target, E> {
         let mut res = x.clone();
         for _ in 0..power_log {
-            res = self.p3_ext_mul(&res, &x);
+            res = self.p3_ext_mul(&res, &res);
         }
         res
     }
