@@ -4,10 +4,11 @@ https://qedprotocol.com ❤️ Hackers
 
 ## Getting Started
 
-1. Generating plonky3 proof for fibonacci(64)
+1. Verify a plonky3 fibonacci(64) proof in a plonky2 proof
 ```
 cargo test --release --package plonky2_5 --lib -- 'p3::tests::test_verify_plonky3_proof' --exact --nocapture
 ```
+
 
 ## Licnese
 Copyright 2024 Zero Knowledge Labs Limited
