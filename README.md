@@ -25,7 +25,7 @@ cd plonky2.5
 cp ../plonky3-fibonacci/keccak-air/proof_fibonacci.json src/p3/
 ```
 
-Verify a plonky3 fibonacci(64) proof in a plonky2 proof
+Verify a plonky3 fibonacci proof in a plonky2 proof
 ```
 cargo test --release --package plonky2_5 --lib -- 'p3::tests::test_verify_plonky3_proof' --exact --nocapture
 ```
@@ -33,6 +33,7 @@ cargo test --release --package plonky2_5 --lib -- 'p3::tests::test_verify_plonky
 ### Todo
 - Add link to plonky3 proof generation code
 - Add tutorial for AIR setup
+- Add custom gate for poseidon2 (URGENT)
 
 
 ## License
