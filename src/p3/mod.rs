@@ -2,8 +2,9 @@ pub mod air;
 pub mod challenger;
 pub mod commit;
 pub mod constants;
+pub mod extension;
+pub mod gadgets;
 pub mod serde;
-pub mod types;
 pub mod utils;
 pub mod verifier;
 
@@ -18,16 +19,11 @@ use crate::{
     p3::{
         air::Air,
         challenger::DuplexChallengerTarget,
-        constants::EXT_DEGREE,
-        serde::{Goldilocks, Proof},
-        types::{
-            CommitmentTarget, CommitmentsTarget, FriConfig, FriProofTarget, ProofTarget,
-            TwoAdicFriPcsProofTarget,
+        serde::{
+            fri::FriConfig,
+            proof::{P3Config, P3ProofField, Proof},
         },
-        utils::{
-            batch_opening_to_target, binomial_extension_field_to_target, opened_values_to_target,
-            query_proof_to_target,
-        },
+        utils::log2_ceil_usize,
         verifier::CircuitBuilderP3Verifier,
     },
 };
@@ -50,11 +46,10 @@ pub trait CircuitBuilderP3Arithmetic<F: RicherField + Extendable<D>, const D: us
     fn p3_field_to_arr<const SIZE: usize>(&mut self, x: Target) -> [Target; SIZE];
     fn p3_verify_proof<H: AlgebraicHasher<F>>(
         &mut self,
-        proof: Proof<Goldilocks>,
+        proof: P3ProofField,
         air: &impl Air,
-        log_quotient_degree: usize,
-        log_trace_height: usize,
-    );
+        fri_config: FriConfig,
+    ) -> Proof<Target>;
 }
 
 impl<F: RicherField + Extendable<D>, const D: usize> CircuitBuilderP3Arithmetic<F, D>
@@ -77,84 +72,32 @@ impl<F: RicherField + Extendable<D>, const D: usize> CircuitBuilderP3Arithmetic<
 
     fn p3_verify_proof<H: AlgebraicHasher<F>>(
         &mut self,
-        proof: Proof<Goldilocks>,
+        proof: P3ProofField,
         air: &impl Air,
-        log_quotient_degree: usize,
-        log_trace_height: usize,
-    ) {
-        let opening_proof_target = TwoAdicFriPcsProofTarget::<Target, EXT_DEGREE> {
-            fri_proof: FriProofTarget {
-                commit_phase_commits: proof
-                    .opening_proof
-                    .fri_proof
-                    .commit_phase_commits
-                    .into_iter()
-                    .map(|x| CommitmentTarget {
-                        value: x.value.map(|x| self.p3_constant(x.value)),
-                    })
-                    .collect::<Vec<_>>(),
-                query_proofs: proof
-                    .opening_proof
-                    .fri_proof
-                    .query_proofs
-                    .into_iter()
-                    .map(|x| query_proof_to_target(x, self))
-                    .collect::<Vec<_>>(),
-                final_poly: binomial_extension_field_to_target(
-                    proof.opening_proof.fri_proof.final_poly,
-                    self,
-                ),
-                pow_witness: self.p3_constant(proof.opening_proof.fri_proof.pow_witness.value),
-            },
-            query_openings: proof
-                .opening_proof
-                .query_openings
-                .into_iter()
-                .map(|x| {
-                    x.into_iter()
-                        .map(|y| batch_opening_to_target(y, self))
-                        .collect::<Vec<_>>()
-                })
-                .collect::<Vec<_>>(),
-        };
+        fri_config: FriConfig,
+    ) -> Proof<Target> {
+        let mut challenger = DuplexChallengerTarget::from_builder(self);
 
-        let proof_target = ProofTarget {
-            commitments: CommitmentsTarget {
-                trace: CommitmentTarget {
-                    value: proof
-                        .commitments
-                        .trace
-                        .value
-                        .map(|x| self.p3_constant(x.value)),
-                },
-                quotient_chunks: CommitmentTarget {
-                    value: proof
-                        .commitments
-                        .quotient_chunks
-                        .value
-                        .map(|x| self.p3_constant(x.value)),
-                },
-            },
-            opened_values: opened_values_to_target(proof.opened_values, self),
-            opening_proof: opening_proof_target,
+        let config = P3Config {
+            fri_config,
+            log_quotient_degree: log2_ceil_usize(proof.opened_values.quotient_chunks.len()),
+            log_trace_height: proof.opening_proof.fri_proof.commit_phase_commits.len(),
+            trace_width: proof.opened_values.trace_local.len(),
+            opening_matrix_log_max_height: proof.opening_proof.query_openings[0][0]
+                .opening_proof
+                .len(),
+            opening_proof_query_openings_opened_values_length: proof.opening_proof.query_openings
+                [0][1]
+                .opened_values[0]
+                .len(),
             degree_bits: proof.degree_bits,
         };
 
-        let mut challenger = DuplexChallengerTarget::from_builder(self);
-        let config = FriConfig {
-            log_blowup: 1,
-            num_queries: 100,
-            proof_of_work_bits: 16,
-        };
+        let proof_target = Proof::<Target>::add_virtual_to(self, &config);
 
-        self.__p3_verify_proof__::<H>(
-            air,
-            proof_target,
-            &config,
-            &mut challenger,
-            log_quotient_degree,
-            log_trace_height,
-        );
+        self.__p3_verify_proof__::<H>(air, proof_target.clone(), &config, &mut challenger);
+
+        proof_target
     }
 
     fn p3_and(&mut self, x: Target, y: Target) -> Target {
@@ -213,6 +156,7 @@ impl<F: RicherField + Extendable<D>, const D: usize> CircuitBuilderP3Arithmetic<
 
 #[cfg(test)]
 mod tests {
+
     use plonky2::{
         field::{goldilocks_field::GoldilocksField, types::Field},
         hash::poseidon::PoseidonHash,
@@ -221,20 +165,9 @@ mod tests {
     };
     use rand::Rng;
 
-    use crate::{
-        common::hash::poseidon2::{
-            constants::{
-                DEGREE, MAT_INTERNAL_DIAG_M_1, ROUNDS_F, ROUNDS_P, ROUND_CONSTANTS, WIDTH,
-            },
-            Poseidon2Target,
-        },
-        p3::{
-            types::{
-                BinomialExtensionTarget, CircuitBuilderP3ExtArithmetic,
-                VerifierConstraintFolderTarget,
-            },
-            utils::reverse_bits_len,
-        },
+    use crate::p3::{
+        air::VerifierConstraintFolder, extension::CircuitBuilderP3ExtArithmetic,
+        serde::proof::BinomialExtensionField, utils::reverse_bits_len,
     };
 
     pub const NUM_FIBONACCI_COLS: usize = 3;
@@ -257,18 +190,18 @@ mod tests {
             NUM_FIBONACCI_COLS
         }
 
-        fn eval<F: RicherField + Extendable<D>, const D: usize, const E: usize>(
+        fn eval<F: RicherField + Extendable<D>, const D: usize>(
             &self,
-            folder: &mut VerifierConstraintFolderTarget<Target, E>,
+            folder: &mut VerifierConstraintFolder<Target>,
             cb: &mut CircuitBuilder<F, D>,
         ) {
-            let local = FibnacciCols::<BinomialExtensionTarget<Target, E>> {
+            let local = FibnacciCols::<BinomialExtensionField<Target>> {
                 a: folder.main.trace_local[0].clone(),
                 b: folder.main.trace_local[1].clone(),
                 c: folder.main.trace_local[2].clone(),
             };
 
-            let next = FibnacciCols::<BinomialExtensionTarget<Target, E>> {
+            let next = FibnacciCols::<BinomialExtensionField<Target>> {
                 a: folder.main.trace_next[0].clone(),
                 b: folder.main.trace_next[1].clone(),
                 c: folder.main.trace_next[2].clone(),
@@ -304,19 +237,34 @@ mod tests {
         let config = CircuitConfig::standard_recursion_config();
 
         let proof_str = include_str!("../../artifacts/proof_fibonacci.json");
-        let proof = serde_json::from_str::<Proof<Goldilocks>>(proof_str).unwrap();
+        let proof = serde_json::from_str::<P3ProofField>(proof_str).unwrap();
+        // let p: Proof<GoldilocksField>;
+        // unsafe { p = std::mem::transmute(proof.clone()) }
+        // std::fs::write("ppp.json", serde_json::to_string(&p).unwrap()).unwrap();
 
         let mut builder = CircuitBuilder::<F, D>::new(config);
         let air = FibonacciAir {};
 
-        builder.p3_verify_proof::<PoseidonHash>(proof, &air, 0, 6);
+        let config = FriConfig {
+            log_blowup: 1,
+            num_queries: 100,
+            proof_of_work_bits: 16,
+        };
+
+        let proof_target = builder.p3_verify_proof::<PoseidonHash>(proof.clone(), &air, config);
 
         let data = builder.build::<C>();
 
-        let pw = PartialWitness::new();
+        let mut pw = PartialWitness::new();
+
+        let p: Proof<GoldilocksField>;
+        unsafe { p = std::mem::transmute(proof) }
+
+        proof_target.set_witness::<F, D, _>(&mut pw, &p);
 
         let start_time = std::time::Instant::now();
         let proof = data.prove(pw).unwrap();
+        std::fs::write("proof.json", serde_json::to_string(&proof).unwrap()).unwrap();
         let duration_ms = start_time.elapsed().as_millis();
         println!("demo proved in {}ms", duration_ms);
         println!("proof public_inputs: {:?}", proof.public_inputs);
@@ -324,51 +272,6 @@ mod tests {
         let is_verified = data.verify(proof);
         is_verified.as_ref().unwrap();
         assert!(is_verified.is_ok());
-    }
-
-    #[test]
-    fn test_poseidon2_hash() {
-        const D: usize = 2;
-        type C = PoseidonGoldilocksConfig;
-        type F = GoldilocksField;
-        let config = CircuitConfig::standard_recursion_config();
-
-        let mut builder = CircuitBuilder::<F, D>::new(config);
-
-        let poseidon2_target = Poseidon2Target::new(
-            WIDTH,
-            DEGREE,
-            ROUNDS_F,
-            ROUNDS_P,
-            MAT_INTERNAL_DIAG_M_1
-                .into_iter()
-                .map(|x| builder.p3_constant(x))
-                .collect::<Vec<_>>(),
-            ROUND_CONSTANTS
-                .into_iter()
-                .map(|x| {
-                    x.into_iter()
-                        .map(|y| builder.p3_constant(y))
-                        .collect::<Vec<_>>()
-                })
-                .collect::<Vec<_>>(),
-        );
-
-        let mut input = [builder.zero(); 8];
-        poseidon2_target.permute_mut(&mut input, &mut builder);
-        builder.register_public_inputs(&input);
-
-        let data = builder.build::<C>();
-
-        let pw = PartialWitness::new();
-
-        let start_time = std::time::Instant::now();
-        let proof = data.prove(pw).unwrap();
-        let duration_ms = start_time.elapsed().as_millis();
-        println!("demo proved in {}ms", duration_ms);
-        println!("proof public_inputs: {:?}", proof.public_inputs);
-
-        assert!(data.verify(proof).is_ok());
     }
 
     #[test]
@@ -580,7 +483,6 @@ mod tests {
         let mut pw = PartialWitness::new();
         let mut rng = rand::thread_rng();
         let x_val = rng.gen::<usize>();
-        dbg!(x_val);
 
         pw.set_target(x, F::from_canonical_usize(x_val));
         pw.set_target(

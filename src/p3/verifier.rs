@@ -8,53 +8,57 @@ use plonky2::{
 use crate::{
     common::richer_field::RicherField,
     p3::{
-        air::Air,
+        air::{Air, VerifierConstraintFolder},
         challenger::{DuplexChallenger, DuplexChallengerTarget},
         commit,
-        types::{
-            BinomialExtensionTarget, CircuitBuilderP3ExtArithmetic, CommitmentTarget, Dimensions,
-            FriChallenges, FriConfig, FriError, FriProofTarget, ProofTarget, QueryProofTarget,
-            TwoAdicFriPcsProofTarget, TwoAdicMultiplicativeCoset, VerifierConstraintFolderTarget,
+        constants::EXT_DEGREE,
+        extension::CircuitBuilderP3ExtArithmetic,
+        serde::{
+            fri::{FriChallenges, FriConfig, FriError},
+            proof::{
+                BinomialExtensionField, Commitment, FriProof, P3Config, P3Proof, QueryProof,
+                TwoAdicFriPcsProof,
+            },
+            two_adic::TwoAdicMultiplicativeCoset,
+            Dimensions,
         },
         utils::log2_strict_usize,
         CircuitBuilderP3Arithmetic,
     },
 };
 
-pub trait CircuitBuilderP3Verifier<F: RicherField + Extendable<D>, const D: usize, const E: usize>:
-    CircuitBuilderP3ExtArithmetic<F, D, E>
+pub trait CircuitBuilderP3Verifier<F: RicherField + Extendable<D>, const D: usize>:
+    CircuitBuilderP3ExtArithmetic<F, D>
 {
     fn __p3_verify_proof__<H: AlgebraicHasher<F>>(
         &mut self,
         air: &impl Air,
-        proof: ProofTarget<Target, E>,
-        config: &FriConfig,
+        proof: P3Proof,
+        config: &P3Config,
         challenger: &mut DuplexChallengerTarget,
-        log_quotient_degree: usize,
-        log_trace_height: usize,
     );
 
     fn p3_verify_shape_and_sample_challenges<H: AlgebraicHasher<F>>(
         &mut self,
         config: &FriConfig,
-        proof: &FriProofTarget<Target, E>,
+        proof: &FriProof<Target>,
         challenger: &mut DuplexChallengerTarget,
-    ) -> Result<FriChallenges<Target, E>, FriError>;
+    ) -> Result<FriChallenges<Target>, FriError>;
 
     fn p3_verify_opening_proof<H: AlgebraicHasher<F>>(
         &mut self,
         config: &FriConfig,
         commits_and_points: Vec<(
-            CommitmentTarget<Target>,
+            Commitment<Target>,
             Vec<(
                 TwoAdicMultiplicativeCoset,
                 Vec<(
-                    BinomialExtensionTarget<Target, E>,
-                    Vec<BinomialExtensionTarget<Target, E>>,
+                    BinomialExtensionField<Target>,
+                    Vec<BinomialExtensionField<Target>>,
                 )>,
             )>,
         )>,
-        proof: TwoAdicFriPcsProofTarget<Target, E>,
+        proof: TwoAdicFriPcsProof<Target>,
         challenger: &mut DuplexChallengerTarget,
     ) -> Result<(), ()>;
 
@@ -70,38 +74,36 @@ pub trait CircuitBuilderP3Verifier<F: RicherField + Extendable<D>, const D: usiz
     fn p3_verify_challenges<H: AlgebraicHasher<F>>(
         &mut self,
         config: &FriConfig,
-        proof: &FriProofTarget<Target, E>,
-        challenges: &FriChallenges<Target, E>,
-        reduced_openings: &[[BinomialExtensionTarget<Target, E>; 32]],
+        proof: &FriProof<Target>,
+        challenges: &FriChallenges<Target>,
+        reduced_openings: &[[BinomialExtensionField<Target>; 32]],
     ) -> Result<(), ()>;
 
     fn p3_verify_query<H: AlgebraicHasher<F>>(
         &mut self,
         _config: &FriConfig,
-        commit_phase_commits: &Vec<CommitmentTarget<Target>>,
+        commit_phase_commits: &Vec<Commitment<Target>>,
         index: Target,
-        proof: &QueryProofTarget<Target, E>,
-        betas: &[BinomialExtensionTarget<Target, E>],
-        reduced_openings: &[BinomialExtensionTarget<Target, E>; 32],
+        proof: &QueryProof<Target>,
+        betas: &[BinomialExtensionField<Target>],
+        reduced_openings: &[BinomialExtensionField<Target>; 32],
         log_max_height: usize,
-    ) -> Result<BinomialExtensionTarget<Target, E>, ()>;
+    ) -> Result<BinomialExtensionField<Target>, ()>;
 }
 
-impl<F: RicherField + Extendable<D>, const D: usize, const E: usize>
-    CircuitBuilderP3Verifier<F, D, E> for CircuitBuilder<F, D>
+impl<F: RicherField + Extendable<D>, const D: usize> CircuitBuilderP3Verifier<F, D>
+    for CircuitBuilder<F, D>
 where
-    Self: CircuitBuilderP3ExtArithmetic<F, D, E>,
+    Self: CircuitBuilderP3ExtArithmetic<F, D>,
 {
     fn __p3_verify_proof__<H: AlgebraicHasher<F>>(
         &mut self,
         air: &impl Air,
-        proof: ProofTarget<Target, E>,
-        config: &FriConfig,
+        proof: P3Proof,
+        config: &P3Config,
         challenger: &mut DuplexChallengerTarget,
-        log_quotient_degree: usize,
-        log_trace_height: usize,
     ) {
-        let ProofTarget {
+        let P3Proof {
             commitments,
             opened_values,
             opening_proof,
@@ -109,14 +111,16 @@ where
         } = proof;
 
         let degree = 1 << degree_bits;
-        let quotient_degree = 1 << log_quotient_degree;
+        let quotient_degree = 1 << config.log_quotient_degree;
 
-        let trace_domain =
-            TwoAdicMultiplicativeCoset::natural_domain_for_degree(log_trace_height, degree, self);
-        let mut quotient_domain =
-            trace_domain.create_disjoint_domain(1 << (degree_bits + log_quotient_degree), self);
-        let quotient_chunks_domains =
-            quotient_domain.split_domains::<F, D, E>(quotient_degree, self);
+        let trace_domain = TwoAdicMultiplicativeCoset::natural_domain_for_degree(
+            config.log_trace_height,
+            degree,
+            self,
+        );
+        let mut quotient_domain = trace_domain
+            .create_disjoint_domain(1 << (degree_bits + config.log_quotient_degree), self);
+        let quotient_chunks_domains = quotient_domain.split_domains::<F, D>(quotient_degree, self);
 
         let air_width = air.width();
         let valid_shape = opened_values.trace_local.len() == air_width
@@ -128,14 +132,14 @@ where
         }
 
         self.p3_observe::<H>(challenger, commitments.trace.value.clone());
-        let alpha = self.p3_sample_ext::<H, E>(challenger);
+        let alpha = self.p3_sample_ext::<H>(challenger);
         self.p3_observe::<H>(challenger, commitments.quotient_chunks.value.clone());
 
-        let zeta = self.p3_sample_ext::<H, E>(challenger);
+        let zeta = self.p3_sample_ext::<H>(challenger);
         let zeta_next = trace_domain.next_point(zeta.clone(), self);
 
         self.p3_verify_opening_proof::<H>(
-            config,
+            &config.fri_config,
             vec![
                 (
                     commitments.trace.clone(),
@@ -161,7 +165,7 @@ where
         )
         .unwrap();
 
-        let zps: Vec<BinomialExtensionTarget<Target, E>> = quotient_chunks_domains
+        let zps: Vec<BinomialExtensionField<Target>> = quotient_chunks_domains
             .iter()
             .enumerate()
             .map(|(i, domain)| {
@@ -184,7 +188,7 @@ where
                     .reduce(|acc, e| self.p3_ext_mul(&acc, &e))
                     .unwrap_or({
                         let one = self.one();
-                        BinomialExtensionTarget::<Target, E> {
+                        BinomialExtensionField::<Target> {
                             value: self.p3_field_to_arr(one),
                         }
                     })
@@ -215,7 +219,7 @@ where
 
         let sels = trace_domain.selectors_at_point(zeta, self);
 
-        let mut folder = VerifierConstraintFolderTarget {
+        let mut folder = VerifierConstraintFolder {
             main: opened_values,
             is_first_row: sels.is_first_row,
             is_last_row: sels.is_last_row,
@@ -238,19 +242,19 @@ where
         &mut self,
         config: &FriConfig,
         commits_and_points: Vec<(
-            CommitmentTarget<Target>,
+            Commitment<Target>,
             Vec<(
                 TwoAdicMultiplicativeCoset,
                 Vec<(
-                    BinomialExtensionTarget<Target, E>,
-                    Vec<BinomialExtensionTarget<Target, E>>,
+                    BinomialExtensionField<Target>,
+                    Vec<BinomialExtensionField<Target>>,
                 )>,
             )>,
         )>,
-        proof: TwoAdicFriPcsProofTarget<Target, E>,
+        proof: TwoAdicFriPcsProof<Target>,
         challenger: &mut DuplexChallengerTarget,
     ) -> Result<(), ()> {
-        let alpha = self.p3_sample_ext::<H, E>(challenger);
+        let alpha = self.p3_sample_ext::<H>(challenger);
 
         let fri_challenges = self
             .p3_verify_shape_and_sample_challenges::<H>(config, &proof.fri_proof, challenger)
@@ -258,14 +262,14 @@ where
 
         let log_max_height = proof.fri_proof.commit_phase_commits.len() + config.log_blowup;
 
-        let reduced_openings: Vec<[BinomialExtensionTarget<Target, E>; 32]> = proof
+        let reduced_openings: Vec<[BinomialExtensionField<Target>; 32]> = proof
             .query_openings
             .iter()
             .zip(&fri_challenges.query_indices)
             .map(|(query_opening, &index)| {
                 let mut ro = self.p3_ext_arr::<32>();
                 let one = self.p3_ext_one();
-                let mut alpha_pow: [BinomialExtensionTarget<Target, E>; 32] =
+                let mut alpha_pow: [BinomialExtensionField<Target>; 32] =
                     self.p3_ext_arr_fn(|_| one.clone());
 
                 for (batch_opening, (batch_commit, mats)) in
@@ -352,15 +356,15 @@ where
     fn p3_verify_shape_and_sample_challenges<H: AlgebraicHasher<F>>(
         &mut self,
         config: &FriConfig,
-        proof: &FriProofTarget<Target, E>,
+        proof: &FriProof<Target>,
         challenger: &mut DuplexChallengerTarget,
-    ) -> Result<FriChallenges<Target, E>, FriError> {
-        let betas: Vec<BinomialExtensionTarget<Target, E>> = proof
+    ) -> Result<FriChallenges<Target>, FriError> {
+        let betas: Vec<BinomialExtensionField<Target>> = proof
             .commit_phase_commits
             .iter()
             .map(|comm| {
                 self.p3_observe::<H>(challenger, comm.value.clone());
-                self.p3_sample_ext::<H, E>(challenger)
+                self.p3_sample_ext::<H>(challenger)
             })
             .collect();
 
@@ -385,9 +389,9 @@ where
     fn p3_verify_challenges<H: AlgebraicHasher<F>>(
         &mut self,
         config: &FriConfig,
-        proof: &FriProofTarget<Target, E>,
-        challenges: &FriChallenges<Target, E>,
-        reduced_openings: &[[BinomialExtensionTarget<Target, E>; 32]],
+        proof: &FriProof<Target>,
+        challenges: &FriChallenges<Target>,
+        reduced_openings: &[[BinomialExtensionField<Target>; 32]],
     ) -> Result<(), ()> {
         let log_max_height = proof.commit_phase_commits.len() + config.log_blowup;
         for (&index, query_proof, ro) in izip!(
@@ -414,31 +418,31 @@ where
     fn p3_verify_query<H: AlgebraicHasher<F>>(
         &mut self,
         _config: &FriConfig,
-        commit_phase_commits: &Vec<CommitmentTarget<Target>>,
+        commit_phase_commits: &Vec<Commitment<Target>>,
         mut index: Target,
-        proof: &QueryProofTarget<Target, E>,
-        betas: &[BinomialExtensionTarget<Target, E>],
-        reduced_openings: &[BinomialExtensionTarget<Target, E>; 32],
+        proof: &QueryProof<Target>,
+        betas: &[BinomialExtensionField<Target>],
+        reduced_openings: &[BinomialExtensionField<Target>; 32],
         log_max_height: usize,
-    ) -> Result<BinomialExtensionTarget<Target, E>, ()> {
-        let mut folded_eval = <Self as CircuitBuilderP3ExtArithmetic<F, D, E>>::p3_ext_zero(self);
+    ) -> Result<BinomialExtensionField<Target>, ()> {
+        let mut folded_eval = <Self as CircuitBuilderP3ExtArithmetic<F, D>>::p3_ext_zero(self);
         // TODO: use p3_ext_two_adic_generator
         let two_adic_generator = self.p3_two_adic_generator(log_max_height);
         let rev_index_shifted = self.reverse_p3_bits_len(index, log_max_height);
         let x = self.exp(two_adic_generator, rev_index_shifted, 64);
-        let mut x = BinomialExtensionTarget::<Target, E> {
+        let mut x = BinomialExtensionField::<Target> {
             value: self.p3_field_to_arr(x),
         };
 
         let one = self.one();
 
         let rev_log_max_height: Vec<_> = (0..log_max_height).rev().collect();
-        for i in 0..commit_phase_commits.len() {
-            let log_folded_height = rev_log_max_height[i];
-            let commit = &commit_phase_commits[i];
-            let step = &proof.commit_phase_openings[i];
-            let beta = &betas[i];
-
+        for (log_folded_height, commit, step, beta) in izip!(
+            rev_log_max_height,
+            commit_phase_commits,
+            &proof.commit_phase_openings,
+            betas
+        ) {
             folded_eval =
                 self.p3_ext_add(reduced_openings[log_folded_height + 1].clone(), folded_eval);
 
@@ -524,7 +528,7 @@ where
         let base_dimensions = dimensions
             .iter()
             .map(|dim| Dimensions {
-                width: dim.width * E,
+                width: dim.width * EXT_DEGREE,
                 height: dim.height,
             })
             .collect::<Vec<_>>();

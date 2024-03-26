@@ -5,10 +5,6 @@ version = "0.1.0"
 
 [dependencies]
 anyhow = { version = "1.0.40", default-features = false }
-hashbrown = { version = "0.14.0", default-features = false, features = [
-  "ahash",
-  "serde",
-] } # NOTE: When upgrading, see `ahash` dependency.
 hex = "0.4.3"
 itertools = "0.10.5"
 log = "0.4.17"
