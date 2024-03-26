@@ -3,16 +3,12 @@ use std::cmp::Reverse;
 use itertools::Itertools;
 use plonky2::{
     field::extension::Extendable,
-    hash::hash_types::RichField,
     iop::target::{BoolTarget, Target},
     plonk::{circuit_builder::CircuitBuilder, config::AlgebraicHasher},
 };
 
 use crate::{
-    common::hash::poseidon2::{
-        constants::{DEGREE, MAT_INTERNAL_DIAG_M_1, ROUNDS_F, ROUNDS_P, ROUND_CONSTANTS},
-        Poseidon2Target,
-    },
+    common::{poseidon2::poseidon2::Poseidon2Hash, richer_field::RicherField},
     p3::{
         constants::{CHUNK, DIGEST_ELEMS, N, OUT, RATE, WIDTH},
         types::Dimensions,
@@ -27,7 +23,7 @@ impl MerkleTreeMmcs {
         'a,
         H: AlgebraicHasher<F>,
         I,
-        F: RichField + Extendable<D>,
+        F: RicherField + Extendable<D>,
         const D: usize,
     >(
         input: I,
@@ -43,28 +39,12 @@ impl MerkleTreeMmcs {
                 .zip(input_chunk)
                 .for_each(|(s, i)| *s = i.clone());
 
-            // TODO: put this outside of the loop
-            let poseidon2_target = Poseidon2Target::new(
-                WIDTH,
-                DEGREE,
-                ROUNDS_F,
-                ROUNDS_P,
-                MAT_INTERNAL_DIAG_M_1
-                    .into_iter()
-                    .map(|x| cb.p3_constant(x))
-                    .collect::<Vec<_>>(),
-                ROUND_CONSTANTS
-                    .into_iter()
-                    .map(|x| x.into_iter().map(|y| cb.p3_constant(y)).collect::<Vec<_>>())
-                    .collect::<Vec<_>>(),
-            );
-
-            poseidon2_target.permute_mut(&mut state, cb);
+            state = Poseidon2Hash::permute_targets::<F, D>(&state, cb);
         }
         state[..OUT].try_into().unwrap()
     }
 
-    pub fn compress<H: AlgebraicHasher<F>, F: RichField + Extendable<D>, const D: usize>(
+    pub fn compress<H: AlgebraicHasher<F>, F: RicherField + Extendable<D>, const D: usize>(
         input: [[Target; CHUNK]; N],
         cb: &mut CircuitBuilder<F, D>,
     ) -> [Target; CHUNK] {
@@ -73,26 +53,12 @@ impl MerkleTreeMmcs {
             state[i * CHUNK..(i + 1) * CHUNK].copy_from_slice(&input[i]);
         }
 
-        let poseidon2_target = Poseidon2Target::new(
-            WIDTH,
-            DEGREE,
-            ROUNDS_F,
-            ROUNDS_P,
-            MAT_INTERNAL_DIAG_M_1
-                .into_iter()
-                .map(|x| cb.p3_constant(x))
-                .collect::<Vec<_>>(),
-            ROUND_CONSTANTS
-                .into_iter()
-                .map(|x| x.into_iter().map(|y| cb.p3_constant(y)).collect::<Vec<_>>())
-                .collect::<Vec<_>>(),
-        );
+        state = Poseidon2Hash::permute_targets::<F, D>(&state, cb);
 
-        poseidon2_target.permute_mut(&mut state, cb);
         state[..CHUNK].try_into().unwrap()
     }
 
-    pub fn verify_batch<H: AlgebraicHasher<F>, F: RichField + Extendable<D>, const D: usize>(
+    pub fn verify_batch<H: AlgebraicHasher<F>, F: RicherField + Extendable<D>, const D: usize>(
         commit: &Vec<Target>,
         dimensions: &[Dimensions],
         mut index: Target,

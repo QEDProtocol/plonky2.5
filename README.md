@@ -2,7 +2,7 @@
 
 <h1 align="center">plonky2.5</h1>
 
-<hr/>  
+<hr/>
 <p align="center">
   verify <a href="https://github.com/Plonky3/Plonky3">plonky3</a> STARK proofs in a <a href="https://github.com/0xPolygonZero/plonky2">plonky2</a> SNARK
 </p>
@@ -29,12 +29,6 @@ Verify a plonky3 fibonacci proof in a plonky2 proof
 ```
 cargo test --release --package plonky2_5 --lib -- 'p3::tests::test_verify_plonky3_proof' --exact --nocapture
 ```
-
-### Todo
-- Add link to plonky3 proof generation code
-- Add tutorial for AIR setup
-- Add custom gate for poseidon2 (URGENT)
-
 
 ## License
 Copyright 2024 Zero Knowledge Labs Limited

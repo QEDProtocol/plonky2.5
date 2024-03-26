@@ -1,25 +1,27 @@
 use itertools::izip;
 use plonky2::{
     field::extension::Extendable,
-    hash::hash_types::RichField,
     iop::target::{BoolTarget, Target},
     plonk::{circuit_builder::CircuitBuilder, config::AlgebraicHasher},
 };
 
-use crate::p3::{
-    air::Air,
-    challenger::{DuplexChallenger, DuplexChallengerTarget},
-    commit,
-    types::{
-        BinomialExtensionTarget, CircuitBuilderP3ExtArithmetic, CommitmentTarget, Dimensions,
-        FriChallenges, FriConfig, FriError, FriProofTarget, ProofTarget, QueryProofTarget,
-        TwoAdicFriPcsProofTarget, TwoAdicMultiplicativeCoset, VerifierConstraintFolderTarget,
+use crate::{
+    common::richer_field::RicherField,
+    p3::{
+        air::Air,
+        challenger::{DuplexChallenger, DuplexChallengerTarget},
+        commit,
+        types::{
+            BinomialExtensionTarget, CircuitBuilderP3ExtArithmetic, CommitmentTarget, Dimensions,
+            FriChallenges, FriConfig, FriError, FriProofTarget, ProofTarget, QueryProofTarget,
+            TwoAdicFriPcsProofTarget, TwoAdicMultiplicativeCoset, VerifierConstraintFolderTarget,
+        },
+        utils::log2_strict_usize,
+        CircuitBuilderP3Arithmetic,
     },
-    utils::log2_strict_usize,
-    CircuitBuilderP3Arithmetic,
 };
 
-pub trait CircuitBuilderP3Verifier<F: RichField + Extendable<D>, const D: usize, const E: usize>:
+pub trait CircuitBuilderP3Verifier<F: RicherField + Extendable<D>, const D: usize, const E: usize>:
     CircuitBuilderP3ExtArithmetic<F, D, E>
 {
     fn __p3_verify_proof__<H: AlgebraicHasher<F>>(
@@ -85,8 +87,8 @@ pub trait CircuitBuilderP3Verifier<F: RichField + Extendable<D>, const D: usize,
     ) -> Result<BinomialExtensionTarget<Target, E>, ()>;
 }
 
-impl<F: RichField + Extendable<D>, const D: usize, const E: usize> CircuitBuilderP3Verifier<F, D, E>
-    for CircuitBuilder<F, D>
+impl<F: RicherField + Extendable<D>, const D: usize, const E: usize>
+    CircuitBuilderP3Verifier<F, D, E> for CircuitBuilder<F, D>
 where
     Self: CircuitBuilderP3ExtArithmetic<F, D, E>,
 {

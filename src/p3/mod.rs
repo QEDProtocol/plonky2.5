@@ -8,9 +8,12 @@ pub mod utils;
 pub mod verifier;
 
 use crate::{
-    common::u32::{
-        arithmetic_u32::U32Target, binary_u32::CircuitBuilderBU32,
-        interleaved_u32::CircuitBuilderB32,
+    common::{
+        richer_field::RicherField,
+        u32::{
+            arithmetic_u32::U32Target, binary_u32::CircuitBuilderBU32,
+            interleaved_u32::CircuitBuilderB32,
+        },
     },
     p3::{
         air::Air,
@@ -30,12 +33,11 @@ use crate::{
 };
 use plonky2::{
     field::extension::Extendable,
-    hash::hash_types::RichField,
     iop::target::Target,
     plonk::{circuit_builder::CircuitBuilder, config::AlgebraicHasher},
 };
 
-pub trait CircuitBuilderP3Arithmetic<F: RichField + Extendable<D>, const D: usize> {
+pub trait CircuitBuilderP3Arithmetic<F: RicherField + Extendable<D>, const D: usize> {
     fn p3_constant(&mut self, value: impl Into<u64>) -> Target;
     fn p3_and(&mut self, x: Target, y: Target) -> Target;
     fn p3_xor(&mut self, x: Target, y: Target) -> Target;
@@ -55,7 +57,7 @@ pub trait CircuitBuilderP3Arithmetic<F: RichField + Extendable<D>, const D: usiz
     );
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilderP3Arithmetic<F, D>
+impl<F: RicherField + Extendable<D>, const D: usize> CircuitBuilderP3Arithmetic<F, D>
     for CircuitBuilder<F, D>
 {
     fn p3_constant(&mut self, value: impl Into<u64>) -> Target {
@@ -226,8 +228,71 @@ mod tests {
             },
             Poseidon2Target,
         },
-        p3::{air::FibonacciAir, utils::reverse_bits_len},
+        p3::{
+            types::{
+                BinomialExtensionTarget, CircuitBuilderP3ExtArithmetic,
+                VerifierConstraintFolderTarget,
+            },
+            utils::reverse_bits_len,
+        },
     };
+
+    pub const NUM_FIBONACCI_COLS: usize = 3;
+
+    pub struct FibonacciAir {}
+
+    #[repr(C)]
+    pub struct FibnacciCols<T> {
+        a: T,
+        b: T,
+        c: T,
+    }
+
+    impl Air for FibonacciAir {
+        fn name(&self) -> String {
+            "Fibonacci".to_string()
+        }
+
+        fn width(&self) -> usize {
+            NUM_FIBONACCI_COLS
+        }
+
+        fn eval<F: RicherField + Extendable<D>, const D: usize, const E: usize>(
+            &self,
+            folder: &mut VerifierConstraintFolderTarget<Target, E>,
+            cb: &mut CircuitBuilder<F, D>,
+        ) {
+            let local = FibnacciCols::<BinomialExtensionTarget<Target, E>> {
+                a: folder.main.trace_local[0].clone(),
+                b: folder.main.trace_local[1].clone(),
+                c: folder.main.trace_local[2].clone(),
+            };
+
+            let next = FibnacciCols::<BinomialExtensionTarget<Target, E>> {
+                a: folder.main.trace_next[0].clone(),
+                b: folder.main.trace_next[1].clone(),
+                c: folder.main.trace_next[2].clone(),
+            };
+
+            let local_a_plus_b = cb.p3_ext_add(local.a.clone(), local.b.clone());
+            folder.assert_eq(local_a_plus_b, local.c.clone(), cb);
+
+            let one = cb.p3_ext_one();
+            folder
+                .when_first_row::<F, D>()
+                .assert_eq(one.clone(), local.a.clone(), cb);
+            folder
+                .when_first_row::<F, D>()
+                .assert_eq(one.clone(), local.b.clone(), cb);
+
+            folder
+                .when_transition::<F, D>()
+                .assert_eq(next.a.clone(), local.b, cb);
+            folder
+                .when_transition::<F, D>()
+                .assert_eq(next.b, local.c, cb);
+        }
+    }
 
     use super::*;
 
@@ -238,7 +303,7 @@ mod tests {
         type F = GoldilocksField;
         let config = CircuitConfig::standard_recursion_config();
 
-        let proof_str = include_str!("proof_fibonacci.json");
+        let proof_str = include_str!("../../artifacts/proof_fibonacci.json");
         let proof = serde_json::from_str::<Proof<Goldilocks>>(proof_str).unwrap();
 
         let mut builder = CircuitBuilder::<F, D>::new(config);

@@ -1,13 +1,15 @@
 use plonky2::{
     field::extension::Extendable,
-    hash::hash_types::RichField,
     iop::target::{BoolTarget, Target},
     plonk::circuit_builder::CircuitBuilder,
 };
 
-use crate::p3::{
-    utils::{log2_ceil_usize, log2_strict_usize},
-    CircuitBuilderP3Arithmetic,
+use crate::{
+    common::richer_field::RicherField,
+    p3::{
+        utils::{log2_ceil_usize, log2_strict_usize},
+        CircuitBuilderP3Arithmetic,
+    },
 };
 
 #[derive(Copy, Clone)]
@@ -89,7 +91,7 @@ pub struct ProofTarget<F, const E: usize> {
 }
 
 pub trait CircuitBuilderP3ExtArithmetic<
-    F: RichField + Extendable<D>,
+    F: RicherField + Extendable<D>,
     const D: usize,
     const E: usize,
 >
@@ -229,7 +231,7 @@ pub trait CircuitBuilderP3ExtArithmetic<
     ) -> BinomialExtensionTarget<Target, E>;
 }
 
-impl<F: RichField + Extendable<D>, const D: usize, const E: usize>
+impl<F: RicherField + Extendable<D>, const D: usize, const E: usize>
     CircuitBuilderP3ExtArithmetic<F, D, E> for CircuitBuilder<F, D>
 {
     fn p3_w(&mut self) -> Target {
@@ -700,7 +702,7 @@ pub struct FilteredAirBuilderTarget<'a, F, const E: usize> {
 }
 
 impl<const E: usize> VerifierConstraintFolderTarget<Target, E> {
-    pub fn when<F: RichField + Extendable<D>, const D: usize>(
+    pub fn when<F: RicherField + Extendable<D>, const D: usize>(
         &mut self,
         condition: BinomialExtensionTarget<Target, E>,
     ) -> FilteredAirBuilderTarget<Target, E> {
@@ -710,25 +712,25 @@ impl<const E: usize> VerifierConstraintFolderTarget<Target, E> {
         }
     }
 
-    pub fn when_first_row<F: RichField + Extendable<D>, const D: usize>(
+    pub fn when_first_row<F: RicherField + Extendable<D>, const D: usize>(
         &mut self,
     ) -> FilteredAirBuilderTarget<Target, E> {
         self.when::<F, D>(self.is_first_row.clone())
     }
 
-    pub fn when_last_row<F: RichField + Extendable<D>, const D: usize>(
+    pub fn when_last_row<F: RicherField + Extendable<D>, const D: usize>(
         &mut self,
     ) -> FilteredAirBuilderTarget<Target, E> {
         self.when::<F, D>(self.is_last_row.clone())
     }
 
-    pub fn when_transition<F: RichField + Extendable<D>, const D: usize>(
+    pub fn when_transition<F: RicherField + Extendable<D>, const D: usize>(
         &mut self,
     ) -> FilteredAirBuilderTarget<Target, E> {
         self.when::<F, D>(self.is_transition.clone())
     }
 
-    pub fn assert_zero<F: RichField + Extendable<D>, const D: usize>(
+    pub fn assert_zero<F: RicherField + Extendable<D>, const D: usize>(
         &mut self,
         x: BinomialExtensionTarget<Target, E>,
         cb: &mut CircuitBuilder<F, D>,
@@ -736,7 +738,7 @@ impl<const E: usize> VerifierConstraintFolderTarget<Target, E> {
         self.accumulator = cb.p3_ext_mul_add(self.accumulator.clone(), self.alpha.clone(), x);
     }
 
-    pub fn assert_eq<F: RichField + Extendable<D>, const D: usize>(
+    pub fn assert_eq<F: RicherField + Extendable<D>, const D: usize>(
         &mut self,
         x: BinomialExtensionTarget<Target, E>,
         y: BinomialExtensionTarget<Target, E>,
@@ -746,7 +748,7 @@ impl<const E: usize> VerifierConstraintFolderTarget<Target, E> {
         self.assert_zero(x_sub_y, cb)
     }
 
-    pub fn assert_bool<F: RichField + Extendable<D>, const D: usize>(
+    pub fn assert_bool<F: RicherField + Extendable<D>, const D: usize>(
         &mut self,
         x: BinomialExtensionTarget<Target, E>,
         cb: &mut CircuitBuilder<F, D>,
@@ -760,7 +762,7 @@ impl<const E: usize> VerifierConstraintFolderTarget<Target, E> {
 }
 
 impl<'a, const E: usize> FilteredAirBuilderTarget<'a, Target, E> {
-    pub fn assert_zero<F: RichField + Extendable<D>, const D: usize>(
+    pub fn assert_zero<F: RicherField + Extendable<D>, const D: usize>(
         &mut self,
         x: BinomialExtensionTarget<Target, E>,
         cb: &mut CircuitBuilder<F, D>,
@@ -769,7 +771,7 @@ impl<'a, const E: usize> FilteredAirBuilderTarget<'a, Target, E> {
         self.inner.assert_zero(x, cb)
     }
 
-    pub fn assert_eq<F: RichField + Extendable<D>, const D: usize>(
+    pub fn assert_eq<F: RicherField + Extendable<D>, const D: usize>(
         &mut self,
         x: BinomialExtensionTarget<Target, E>,
         y: BinomialExtensionTarget<Target, E>,
@@ -780,7 +782,7 @@ impl<'a, const E: usize> FilteredAirBuilderTarget<'a, Target, E> {
         self.inner.assert_zero(x, cb)
     }
 
-    pub fn assert_bool<F: RichField + Extendable<D>, const D: usize>(
+    pub fn assert_bool<F: RicherField + Extendable<D>, const D: usize>(
         &mut self,
         x: BinomialExtensionTarget<Target, E>,
         cb: &mut CircuitBuilder<F, D>,
@@ -832,7 +834,7 @@ impl TwoAdicMultiplicativeCoset {
         self.shift
     }
 
-    pub fn gen<F: RichField + Extendable<D>, const D: usize>(
+    pub fn gen<F: RicherField + Extendable<D>, const D: usize>(
         &self,
         cb: &mut CircuitBuilder<F, D>,
     ) -> Target {
@@ -842,7 +844,7 @@ impl TwoAdicMultiplicativeCoset {
         cb.exp_power_of_2(base, Self::TWO_ADICITY - self.log_n)
     }
 
-    pub fn next_point<F: RichField + Extendable<D>, const D: usize, const E: usize>(
+    pub fn next_point<F: RicherField + Extendable<D>, const D: usize, const E: usize>(
         &self,
         x: BinomialExtensionTarget<Target, E>,
         cb: &mut CircuitBuilder<F, D>,
@@ -851,7 +853,7 @@ impl TwoAdicMultiplicativeCoset {
         cb.p3_ext_mul_single(&x, gen)
     }
 
-    pub fn natural_domain_for_degree<F: RichField + Extendable<D>, const D: usize>(
+    pub fn natural_domain_for_degree<F: RicherField + Extendable<D>, const D: usize>(
         log_n_self: usize,
         degree: usize,
         cb: &mut CircuitBuilder<F, D>,
@@ -864,7 +866,7 @@ impl TwoAdicMultiplicativeCoset {
         }
     }
 
-    pub fn create_disjoint_domain<F: RichField + Extendable<D>, const D: usize>(
+    pub fn create_disjoint_domain<F: RicherField + Extendable<D>, const D: usize>(
         &self,
         min_size: usize,
         cb: &mut CircuitBuilder<F, D>,
@@ -876,7 +878,7 @@ impl TwoAdicMultiplicativeCoset {
         }
     }
 
-    pub fn split_domains<F: RichField + Extendable<D>, const D: usize, const E: usize>(
+    pub fn split_domains<F: RicherField + Extendable<D>, const D: usize, const E: usize>(
         &mut self,
         num_chunks: usize,
         cb: &mut CircuitBuilder<F, D>,
@@ -895,7 +897,7 @@ impl TwoAdicMultiplicativeCoset {
             .collect()
     }
 
-    pub fn selectors_at_point<F: RichField + Extendable<D>, const D: usize, const E: usize>(
+    pub fn selectors_at_point<F: RicherField + Extendable<D>, const D: usize, const E: usize>(
         &self,
         point: BinomialExtensionTarget<Target, E>,
         cb: &mut CircuitBuilder<F, D>,
@@ -927,7 +929,7 @@ impl TwoAdicMultiplicativeCoset {
         }
     }
 
-    pub fn zp_at_point<F: RichField + Extendable<D>, const D: usize, const E: usize>(
+    pub fn zp_at_point<F: RicherField + Extendable<D>, const D: usize, const E: usize>(
         &self,
         point: BinomialExtensionTarget<Target, E>,
         cb: &mut CircuitBuilder<F, D>,
@@ -940,7 +942,7 @@ impl TwoAdicMultiplicativeCoset {
         cb.p3_ext_sub(point_mul_shift_inv_powers_log_n, one)
     }
 
-    pub fn zp_at_single_point<F: RichField + Extendable<D>, const D: usize>(
+    pub fn zp_at_single_point<F: RicherField + Extendable<D>, const D: usize>(
         &self,
         point: Target,
         cb: &mut CircuitBuilder<F, D>,

@@ -82,7 +82,7 @@ mod tests {
 
     #[test]
     fn deserialize_test() {
-        let s = include_str!("proof_fibonacci.json");
+        let s = include_str!("../../artifacts/proof_fibonacci.json");
         serde_json::from_str::<Proof<Goldilocks>>(s).unwrap();
     }
 }

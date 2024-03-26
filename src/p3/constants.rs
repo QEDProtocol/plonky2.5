@@ -1,4 +1,4 @@
-pub const WIDTH: usize = 8;
+pub const WIDTH: usize = 12;
 pub const DIGEST_ELEMS: usize = 4;
 pub const RATE: usize = 4;
 pub const OUT: usize = 4;

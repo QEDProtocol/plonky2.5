@@ -1,12 +1,9 @@
-use plonky2::hash::hash_types::RichField;
 use plonky2::iop::target::Target;
 use plonky2::plonk::config::AlgebraicHasher;
 use plonky2::{field::extension::Extendable, plonk::circuit_builder::CircuitBuilder};
 
-use crate::common::hash::poseidon2::constants::{
-    DEGREE, MAT_INTERNAL_DIAG_M_1, ROUNDS_F, ROUNDS_P, ROUND_CONSTANTS,
-};
-use crate::common::hash::poseidon2::Poseidon2Target;
+use crate::common::poseidon2::poseidon2::Poseidon2Hash;
+use crate::common::richer_field::RicherField;
 use crate::common::u32::arithmetic_u32::U32Target;
 use crate::common::u32::interleaved_u32::CircuitBuilderB32;
 use crate::p3::constants::WIDTH;
@@ -20,7 +17,7 @@ pub struct DuplexChallengerTarget {
 }
 
 impl DuplexChallengerTarget {
-    pub fn from_builder<F: RichField + Extendable<D>, const D: usize>(
+    pub fn from_builder<F: RicherField + Extendable<D>, const D: usize>(
         cb: &mut CircuitBuilder<F, D>,
     ) -> Self {
         Self {
@@ -31,7 +28,7 @@ impl DuplexChallengerTarget {
     }
 }
 
-pub trait DuplexChallenger<F: RichField + Extendable<D>, const D: usize> {
+pub trait DuplexChallenger<F: RicherField + Extendable<D>, const D: usize> {
     fn p3_duplexing<H: AlgebraicHasher<F>>(&mut self, x: &mut DuplexChallengerTarget);
     fn p3_observe_single<H: AlgebraicHasher<F>>(
         &mut self,
@@ -65,7 +62,9 @@ pub trait DuplexChallenger<F: RichField + Extendable<D>, const D: usize> {
     );
 }
 
-impl<F: RichField + Extendable<D>, const D: usize> DuplexChallenger<F, D> for CircuitBuilder<F, D> {
+impl<F: RicherField + Extendable<D>, const D: usize> DuplexChallenger<F, D>
+    for CircuitBuilder<F, D>
+{
     fn p3_duplexing<H: AlgebraicHasher<F>>(&mut self, x: &mut DuplexChallengerTarget) {
         assert!(x.input_buffer.len() <= WIDTH);
 
@@ -73,25 +72,7 @@ impl<F: RichField + Extendable<D>, const D: usize> DuplexChallenger<F, D> for Ci
             x.sponge_state[i] = val;
         }
 
-        let poseidon2_target = Poseidon2Target::new(
-            WIDTH,
-            DEGREE,
-            ROUNDS_F,
-            ROUNDS_P,
-            MAT_INTERNAL_DIAG_M_1
-                .into_iter()
-                .map(|x| self.p3_constant(x))
-                .collect::<Vec<_>>(),
-            ROUND_CONSTANTS
-                .into_iter()
-                .map(|x| {
-                    x.into_iter()
-                        .map(|y| self.p3_constant(y))
-                        .collect::<Vec<_>>()
-                })
-                .collect::<Vec<_>>(),
-        );
-        poseidon2_target.permute_mut(&mut x.sponge_state, self);
+        x.sponge_state = Poseidon2Hash::permute_targets::<F, D>(&x.sponge_state, self).to_vec();
 
         x.output_buffer.clear();
         x.output_buffer.extend(x.sponge_state.clone());

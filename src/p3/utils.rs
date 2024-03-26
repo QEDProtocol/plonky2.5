@@ -1,15 +1,17 @@
-use crate::p3::{
-    constants::EXT_DEGREE,
-    serde::{BatchOpening, BinomialExtensionField, Goldilocks, OpenedValues, QueryProof},
-    types::{
-        BatchOpeningTarget, BinomialExtensionTarget, CommitPhaseProofStepTarget,
-        OpenedValuesTarget, QueryProofTarget,
+use crate::{
+    common::richer_field::RicherField,
+    p3::{
+        constants::EXT_DEGREE,
+        serde::{BatchOpening, BinomialExtensionField, Goldilocks, OpenedValues, QueryProof},
+        types::{
+            BatchOpeningTarget, BinomialExtensionTarget, CommitPhaseProofStepTarget,
+            OpenedValuesTarget, QueryProofTarget,
+        },
+        CircuitBuilderP3Arithmetic,
     },
-    CircuitBuilderP3Arithmetic,
 };
 use plonky2::{
-    field::extension::Extendable, hash::hash_types::RichField, iop::target::Target,
-    plonk::circuit_builder::CircuitBuilder,
+    field::extension::Extendable, iop::target::Target, plonk::circuit_builder::CircuitBuilder,
 };
 
 #[must_use]
@@ -56,7 +58,7 @@ pub fn reverse_slice_index_bits<F>(vals: &mut [F]) {
     }
 }
 
-pub fn binomial_extension_field_to_target<F: RichField + Extendable<D>, const D: usize>(
+pub fn binomial_extension_field_to_target<F: RicherField + Extendable<D>, const D: usize>(
     value: BinomialExtensionField<Goldilocks>,
     cb: &mut CircuitBuilder<F, D>,
 ) -> BinomialExtensionTarget<Target, EXT_DEGREE> {
@@ -65,7 +67,7 @@ pub fn binomial_extension_field_to_target<F: RichField + Extendable<D>, const D:
     }
 }
 
-pub fn batch_opening_to_target<F: RichField + Extendable<D>, const D: usize>(
+pub fn batch_opening_to_target<F: RicherField + Extendable<D>, const D: usize>(
     value: BatchOpening<Goldilocks>,
     cb: &mut CircuitBuilder<F, D>,
 ) -> BatchOpeningTarget<Target> {
@@ -91,7 +93,7 @@ pub fn batch_opening_to_target<F: RichField + Extendable<D>, const D: usize>(
     }
 }
 
-pub fn query_proof_to_target<F: RichField + Extendable<D>, const D: usize>(
+pub fn query_proof_to_target<F: RicherField + Extendable<D>, const D: usize>(
     value: QueryProof<Goldilocks>,
     cb: &mut CircuitBuilder<F, D>,
 ) -> QueryProofTarget<Target, EXT_DEGREE> {
@@ -115,7 +117,7 @@ pub fn query_proof_to_target<F: RichField + Extendable<D>, const D: usize>(
     }
 }
 
-pub fn opened_values_to_target<F: RichField + Extendable<D>, const D: usize>(
+pub fn opened_values_to_target<F: RicherField + Extendable<D>, const D: usize>(
     values: OpenedValues<Goldilocks>,
     cb: &mut CircuitBuilder<F, D>,
 ) -> OpenedValuesTarget<Target, EXT_DEGREE> {
