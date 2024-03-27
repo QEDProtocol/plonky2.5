@@ -14,3 +14,7 @@ Cargo.lock
 
 # VS Code settings
 **/.vscode
+
+perf*
+flamegraph*
+profile.json

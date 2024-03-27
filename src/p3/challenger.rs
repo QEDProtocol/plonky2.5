@@ -6,8 +6,8 @@ use crate::common::poseidon2::poseidon2::Poseidon2Hash;
 use crate::common::richer_field::RicherField;
 use crate::common::u32::arithmetic_u32::U32Target;
 use crate::common::u32::interleaved_u32::CircuitBuilderB32;
-use crate::p3::constants::WIDTH;
-use crate::p3::types::BinomialExtensionTarget;
+use crate::p3::constants::{EXT_DEGREE, WIDTH};
+use crate::p3::serde::proof::BinomialExtensionField;
 use crate::p3::CircuitBuilderP3Arithmetic;
 
 pub struct DuplexChallengerTarget {
@@ -41,14 +41,14 @@ pub trait DuplexChallenger<F: RicherField + Extendable<D>, const D: usize> {
         values: impl IntoIterator<Item = Target>,
     );
     fn p3_sample<H: AlgebraicHasher<F>>(&mut self, x: &mut DuplexChallengerTarget) -> Target;
-    fn p3_sample_arr<H: AlgebraicHasher<F>, const SIZE: usize>(
+    fn p3_sample_arr<H: AlgebraicHasher<F>>(
         &mut self,
         x: &mut DuplexChallengerTarget,
-    ) -> [Target; SIZE];
-    fn p3_sample_ext<H: AlgebraicHasher<F>, const E: usize>(
+    ) -> [Target; EXT_DEGREE];
+    fn p3_sample_ext<H: AlgebraicHasher<F>>(
         &mut self,
         x: &mut DuplexChallengerTarget,
-    ) -> BinomialExtensionTarget<Target, E>;
+    ) -> BinomialExtensionField<Target>;
     fn p3_sample_bits<H: AlgebraicHasher<F>>(
         &mut self,
         x: &mut DuplexChallengerTarget,
@@ -113,10 +113,10 @@ impl<F: RicherField + Extendable<D>, const D: usize> DuplexChallenger<F, D>
             .expect("Output buffer should be non-empty")
     }
 
-    fn p3_sample_arr<H: AlgebraicHasher<F>, const SIZE: usize>(
+    fn p3_sample_arr<H: AlgebraicHasher<F>>(
         &mut self,
         x: &mut DuplexChallengerTarget,
-    ) -> [Target; SIZE] {
+    ) -> [Target; EXT_DEGREE] {
         core::array::from_fn(|_| self.p3_sample::<H>(x))
     }
 
@@ -144,12 +144,12 @@ impl<F: RicherField + Extendable<D>, const D: usize> DuplexChallenger<F, D>
         self.mul_const_add(F::from_canonical_u64(1 << 32), high.0, low.0)
     }
 
-    fn p3_sample_ext<H: AlgebraicHasher<F>, const E: usize>(
+    fn p3_sample_ext<H: AlgebraicHasher<F>>(
         &mut self,
         x: &mut DuplexChallengerTarget,
-    ) -> BinomialExtensionTarget<Target, E> {
-        BinomialExtensionTarget {
-            value: self.p3_sample_arr::<H, E>(x),
+    ) -> BinomialExtensionField<Target> {
+        BinomialExtensionField {
+            value: self.p3_sample_arr::<H>(x),
         }
     }
 

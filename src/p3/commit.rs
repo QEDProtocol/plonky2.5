@@ -10,8 +10,8 @@ use plonky2::{
 use crate::{
     common::{poseidon2::poseidon2::Poseidon2Hash, richer_field::RicherField},
     p3::{
-        constants::{CHUNK, DIGEST_ELEMS, N, OUT, RATE, WIDTH},
-        types::Dimensions,
+        constants::{CHUNK, DIGEST_ELEMS, N, RATE, WIDTH},
+        serde::Dimensions,
         CircuitBuilderP3Arithmetic,
     },
 };
@@ -28,7 +28,7 @@ impl MerkleTreeMmcs {
     >(
         input: I,
         cb: &mut CircuitBuilder<F, D>,
-    ) -> [Target; OUT]
+    ) -> [Target; DIGEST_ELEMS]
     where
         I: Iterator<Item = &'a [Target]>,
     {
@@ -41,7 +41,7 @@ impl MerkleTreeMmcs {
 
             state = Poseidon2Hash::permute_targets::<F, D>(&state, cb);
         }
-        state[..OUT].try_into().unwrap()
+        state[..DIGEST_ELEMS].try_into().unwrap()
     }
 
     pub fn compress<H: AlgebraicHasher<F>, F: RicherField + Extendable<D>, const D: usize>(

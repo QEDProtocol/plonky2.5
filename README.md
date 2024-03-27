@@ -11,14 +11,14 @@
 ## Getting Started
 
 Generate plonky3 fibonacci(64) proof
-```
+```bash
 git clone -b fib-example https://github.com/QEDProtocol/plonky3-fibonacci
 cd plonky3-fibonacci/keccak-air
 cargo run --example prove_goldilocks_poseidon2_fibonacci
 ```
 
 Clone this repo and copy the generated proof to `src/p3/`
-```
+```bash
 cd ...
 git clone https://github.com/QEDProtocol/plonky2.5
 cd plonky2.5
@@ -26,9 +26,13 @@ cp ../plonky3-fibonacci/keccak-air/proof_fibonacci.json src/p3/
 ```
 
 Verify a plonky3 fibonacci proof in a plonky2 proof
-```
+```bash
 cargo test --release --package plonky2_5 --lib -- 'p3::tests::test_verify_plonky3_proof' --exact --nocapture
 ```
+
+## Learn More
+
+- [Air Setup](https://github.com/QEDProtocol/plonky2.5/blob/main/docs/DEVELOPER-GUIDE.md)
 
 ## License
 Copyright 2024 Zero Knowledge Labs Limited
