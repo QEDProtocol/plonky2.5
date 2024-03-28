@@ -1,12 +1,14 @@
+use plonky2::field::extension::Extendable;
 use plonky2::iop::target::Target;
+use plonky2::plonk::circuit_builder::CircuitBuilder;
 use plonky2::plonk::config::AlgebraicHasher;
-use plonky2::{field::extension::Extendable, plonk::circuit_builder::CircuitBuilder};
 
 use crate::common::poseidon2::poseidon2::Poseidon2Hash;
 use crate::common::richer_field::RicherField;
 use crate::common::u32::arithmetic_u32::U32Target;
 use crate::common::u32::interleaved_u32::CircuitBuilderB32;
-use crate::p3::constants::{EXT_DEGREE, WIDTH};
+use crate::p3::constants::EXT_DEGREE;
+use crate::p3::constants::WIDTH;
 use crate::p3::serde::proof::BinomialExtensionField;
 use crate::p3::CircuitBuilderP3Arithmetic;
 
@@ -102,8 +104,9 @@ impl<F: RicherField + Extendable<D>, const D: usize> DuplexChallenger<F, D>
     }
 
     fn p3_sample<H: AlgebraicHasher<F>>(&mut self, x: &mut DuplexChallengerTarget) -> Target {
-        // If we have buffered inputs, we must perform a duplexing so that the challenge will
-        // reflect them. Or if we've run out of outputs, we must perform a duplexing to get more.
+        // If we have buffered inputs, we must perform a duplexing so that the challenge
+        // will reflect them. Or if we've run out of outputs, we must perform a
+        // duplexing to get more.
         if !x.input_buffer.is_empty() || x.output_buffer.is_empty() {
             self.p3_duplexing::<H>(x);
         }

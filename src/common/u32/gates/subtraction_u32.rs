@@ -1,8 +1,8 @@
+use alloc::format;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
-use alloc::{format, vec};
 use core::marker::PhantomData;
-use plonky2::util::serialization::{Buffer, IoResult, Read, Write};
 
 use plonky2::field::extension::Extendable;
 use plonky2::field::packed::PackedField;
@@ -12,19 +12,29 @@ use plonky2::gates::packed_util::PackedEvaluableBase;
 use plonky2::gates::util::StridedConstraintConsumer;
 use plonky2::hash::hash_types::RichField;
 use plonky2::iop::ext_target::ExtensionTarget;
-use plonky2::iop::generator::{GeneratedValues, SimpleGenerator, WitnessGeneratorRef};
+use plonky2::iop::generator::GeneratedValues;
+use plonky2::iop::generator::SimpleGenerator;
+use plonky2::iop::generator::WitnessGeneratorRef;
 use plonky2::iop::target::Target;
 use plonky2::iop::wire::Wire;
-use plonky2::iop::witness::{PartitionWitness, Witness, WitnessWrite};
+use plonky2::iop::witness::PartitionWitness;
+use plonky2::iop::witness::Witness;
+use plonky2::iop::witness::WitnessWrite;
 use plonky2::plonk::circuit_builder::CircuitBuilder;
 use plonky2::plonk::circuit_data::CircuitConfig;
-use plonky2::plonk::vars::{
-    EvaluationTargets, EvaluationVars, EvaluationVarsBase, EvaluationVarsBaseBatch,
-    EvaluationVarsBasePacked,
-};
+use plonky2::plonk::vars::EvaluationTargets;
+use plonky2::plonk::vars::EvaluationVars;
+use plonky2::plonk::vars::EvaluationVarsBase;
+use plonky2::plonk::vars::EvaluationVarsBaseBatch;
+use plonky2::plonk::vars::EvaluationVarsBasePacked;
+use plonky2::util::serialization::Buffer;
+use plonky2::util::serialization::IoResult;
+use plonky2::util::serialization::Read;
+use plonky2::util::serialization::Write;
 
-/// A gate to perform a subtraction on 32-bit limbs: given `x`, `y`, and `borrow`, it returns
-/// the result `x - y - borrow` and, if this underflows, a new `borrow`. Inputs are not range-checked.
+/// A gate to perform a subtraction on 32-bit limbs: given `x`, `y`, and
+/// `borrow`, it returns the result `x - y - borrow` and, if this underflows, a
+/// new `borrow`. Inputs are not range-checked.
 #[derive(Copy, Clone, Debug)]
 pub struct U32SubtractionGate<F: RichField + Extendable<D>, const D: usize> {
     pub num_ops: usize,
@@ -376,10 +386,13 @@ mod tests {
     use anyhow::Result;
     use plonky2::field::extension::quartic::QuarticExtension;
     use plonky2::field::goldilocks_field::GoldilocksField;
-    use plonky2::field::types::{PrimeField64, Sample};
-    use plonky2::gates::gate_testing::{test_eval_fns, test_low_degree};
+    use plonky2::field::types::PrimeField64;
+    use plonky2::field::types::Sample;
+    use plonky2::gates::gate_testing::test_eval_fns;
+    use plonky2::gates::gate_testing::test_low_degree;
     use plonky2::hash::hash_types::HashOut;
-    use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
+    use plonky2::plonk::config::GenericConfig;
+    use plonky2::plonk::config::PoseidonGoldilocksConfig;
     use rand::rngs::OsRng;
     use rand::Rng;
 

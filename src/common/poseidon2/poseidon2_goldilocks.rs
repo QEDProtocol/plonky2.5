@@ -2,7 +2,10 @@
 
 use plonky2::field::goldilocks_field::GoldilocksField;
 
-use super::poseidon2::{Poseidon2, ROUND_F_END, ROUND_P, WIDTH};
+use super::poseidon2::Poseidon2;
+use super::poseidon2::ROUND_F_END;
+use super::poseidon2::ROUND_P;
+use super::poseidon2::WIDTH;
 
 impl Poseidon2 for GoldilocksField {
     const MAT_DIAG_M_1: [u64; WIDTH] = [
@@ -164,12 +167,12 @@ impl Poseidon2 for GoldilocksField {
 #[cfg(test)]
 mod tests {
 
-    use plonky2::field::{
-        goldilocks_field::GoldilocksField,
-        types::{Field, PrimeField64},
-    };
+    use plonky2::field::goldilocks_field::GoldilocksField;
+    use plonky2::field::types::Field;
+    use plonky2::field::types::PrimeField64;
 
-    use super::super::poseidon2::test_helpers::{check_consistency, check_test_vectors};
+    use super::super::poseidon2::test_helpers::check_consistency;
+    use super::super::poseidon2::test_helpers::check_test_vectors;
     type F = GoldilocksField;
     #[test]
     fn test_vectors() {

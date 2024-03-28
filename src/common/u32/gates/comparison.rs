@@ -1,28 +1,40 @@
+use alloc::format;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
-use alloc::{format, vec};
 use core::marker::PhantomData;
-use plonky2::util::serialization::{Buffer, IoResult, Read, Write};
 
 use plonky2::field::extension::Extendable;
 use plonky2::field::packed::PackedField;
-use plonky2::field::types::{Field, Field64};
+use plonky2::field::types::Field;
+use plonky2::field::types::Field64;
 use plonky2::gates::gate::Gate;
 use plonky2::gates::packed_util::PackedEvaluableBase;
 use plonky2::gates::util::StridedConstraintConsumer;
 use plonky2::hash::hash_types::RichField;
 use plonky2::iop::ext_target::ExtensionTarget;
-use plonky2::iop::generator::{GeneratedValues, SimpleGenerator, WitnessGeneratorRef};
+use plonky2::iop::generator::GeneratedValues;
+use plonky2::iop::generator::SimpleGenerator;
+use plonky2::iop::generator::WitnessGeneratorRef;
 use plonky2::iop::target::Target;
 use plonky2::iop::wire::Wire;
-use plonky2::iop::witness::{PartitionWitness, Witness, WitnessWrite};
+use plonky2::iop::witness::PartitionWitness;
+use plonky2::iop::witness::Witness;
+use plonky2::iop::witness::WitnessWrite;
 use plonky2::plonk::circuit_builder::CircuitBuilder;
-use plonky2::plonk::plonk_common::{reduce_with_powers, reduce_with_powers_ext_circuit};
-use plonky2::plonk::vars::{
-    EvaluationTargets, EvaluationVars, EvaluationVarsBase, EvaluationVarsBaseBatch,
-    EvaluationVarsBasePacked,
-};
-use plonky2::util::{bits_u64, ceil_div_usize};
+use plonky2::plonk::plonk_common::reduce_with_powers;
+use plonky2::plonk::plonk_common::reduce_with_powers_ext_circuit;
+use plonky2::plonk::vars::EvaluationTargets;
+use plonky2::plonk::vars::EvaluationVars;
+use plonky2::plonk::vars::EvaluationVarsBase;
+use plonky2::plonk::vars::EvaluationVarsBaseBatch;
+use plonky2::plonk::vars::EvaluationVarsBasePacked;
+use plonky2::util::bits_u64;
+use plonky2::util::ceil_div_usize;
+use plonky2::util::serialization::Buffer;
+use plonky2::util::serialization::IoResult;
+use plonky2::util::serialization::Read;
+use plonky2::util::serialization::Write;
 
 /// A gate for checking that one value is less than or equal to another.
 #[derive(Clone, Debug)]
@@ -170,7 +182,8 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for ComparisonGate
         let two_n = F::Extension::from_canonical_u64(1 << self.chunk_bits());
         constraints.push((two_n + most_significant_diff) - bits_combined);
 
-        // Iff first <= second, the top (n + 1st) bit of (2^n + most_significant_diff) will be 1.
+        // Iff first <= second, the top (n + 1st) bit of (2^n + most_significant_diff)
+        // will be 1.
         let result_bool = vars.local_wires[self.wire_result_bool()];
         constraints.push(result_bool - most_significant_diff_bits[self.chunk_bits()]);
 
@@ -278,7 +291,8 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for ComparisonGate
         let sum = builder.add_extension(two_n, most_significant_diff);
         constraints.push(builder.sub_extension(sum, bits_combined));
 
-        // Iff first <= second, the top (n + 1st) bit of (2^n + most_significant_diff) will be 1.
+        // Iff first <= second, the top (n + 1st) bit of (2^n + most_significant_diff)
+        // will be 1.
         let result_bool = vars.local_wires[self.wire_result_bool()];
         constraints.push(
             builder.sub_extension(result_bool, most_significant_diff_bits[self.chunk_bits()]),
@@ -403,7 +417,8 @@ impl<F: RichField + Extendable<D>, const D: usize> PackedEvaluableBase<F, D>
         let two_n = F::from_canonical_u64(1 << self.chunk_bits());
         yield_constr.one((most_significant_diff + two_n) - bits_combined);
 
-        // Iff first <= second, the top (n + 1st) bit of (2^n - 1 + most_significant_diff) will be 1.
+        // Iff first <= second, the top (n + 1st) bit of (2^n - 1 +
+        // most_significant_diff) will be 1.
         let result_bool = vars.local_wires[self.wire_result_bool()];
         yield_constr.one(result_bool - most_significant_diff_bits[self.chunk_bits()]);
     }
@@ -550,10 +565,13 @@ impl<F: RichField + Extendable<D>, const D: usize> SimpleGenerator<F>
 mod tests {
     use anyhow::Result;
     use plonky2::field::goldilocks_field::GoldilocksField;
-    use plonky2::field::types::{PrimeField64, Sample};
-    use plonky2::gates::gate_testing::{test_eval_fns, test_low_degree};
+    use plonky2::field::types::PrimeField64;
+    use plonky2::field::types::Sample;
+    use plonky2::gates::gate_testing::test_eval_fns;
+    use plonky2::gates::gate_testing::test_low_degree;
     use plonky2::hash::hash_types::HashOut;
-    use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
+    use plonky2::plonk::config::GenericConfig;
+    use plonky2::plonk::config::PoseidonGoldilocksConfig;
     use rand::rngs::OsRng;
     use rand::Rng;
 

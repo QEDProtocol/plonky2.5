@@ -1,14 +1,20 @@
 use alloc::vec;
 use alloc::vec::Vec;
 use core::marker::PhantomData;
-use plonky2::util::serialization::{Buffer, IoResult, Read, Write};
 
 use plonky2::field::extension::Extendable;
 use plonky2::hash::hash_types::RichField;
-use plonky2::iop::generator::{GeneratedValues, SimpleGenerator};
-use plonky2::iop::target::{BoolTarget, Target};
-use plonky2::iop::witness::{PartitionWitness, Witness};
+use plonky2::iop::generator::GeneratedValues;
+use plonky2::iop::generator::SimpleGenerator;
+use plonky2::iop::target::BoolTarget;
+use plonky2::iop::target::Target;
+use plonky2::iop::witness::PartitionWitness;
+use plonky2::iop::witness::Witness;
 use plonky2::plonk::circuit_builder::CircuitBuilder;
+use plonky2::util::serialization::Buffer;
+use plonky2::util::serialization::IoResult;
+use plonky2::util::serialization::Read;
+use plonky2::util::serialization::Write;
 
 use super::super::gates::add_many_u32::U32AddManyGate;
 use super::super::gates::arithmetic_u32::U32ArithmeticGate;
@@ -23,7 +29,8 @@ pub trait CircuitBuilderU32<F: RichField + Extendable<D>, const D: usize> {
 
     fn add_virtual_u32_targets(&mut self, n: usize) -> Vec<U32Target>;
 
-    /// Returns a U32Target for the value `c`, which is assumed to be at most 32 bits.
+    /// Returns a U32Target for the value `c`, which is assumed to be at most 32
+    /// bits.
     fn constant_u32(&mut self, c: u32) -> U32Target;
 
     fn zero_u32(&mut self) -> U32Target;
@@ -65,7 +72,9 @@ pub trait CircuitBuilderU32<F: RichField + Extendable<D>, const D: usize> {
 
     fn mul_u32(&mut self, a: U32Target, b: U32Target) -> (U32Target, U32Target);
 
-    // Returns x - y - borrow, as a pair (result, borrow), where borrow is 0 or 1 depending on whether borrowing from the next digit is required (iff y + borrow > x).
+    // Returns x - y - borrow, as a pair (result, borrow), where borrow is 0 or 1
+    // depending on whether borrowing from the next digit is required (iff y +
+    // borrow > x).
     fn sub_u32(&mut self, x: U32Target, y: U32Target, borrow: U32Target) -> (U32Target, U32Target);
 
     // Selects `x` or `y` based on `b`, i.e., this returns `if b { x } else { y }`.
@@ -86,7 +95,8 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilderU32<F, D>
             .collect()
     }
 
-    /// Returns a U32Target for the value `c`, which is assumed to be at most 32 bits.
+    /// Returns a U32Target for the value `c`, which is assumed to be at most 32
+    /// bits.
     fn constant_u32(&mut self, c: u32) -> U32Target {
         U32Target(self.constant(F::from_canonical_u32(c)))
     }
@@ -233,7 +243,9 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilderU32<F, D>
         self.mul_add_u32(a, b, zero)
     }
 
-    // Returns x - y - borrow, as a pair (result, borrow), where borrow is 0 or 1 depending on whether borrowing from the next digit is required (iff y + borrow > x).
+    // Returns x - y - borrow, as a pair (result, borrow), where borrow is 0 or 1
+    // depending on whether borrowing from the next digit is required (iff y +
+    // borrow > x).
     fn sub_u32(&mut self, x: U32Target, y: U32Target, borrow: U32Target) -> (U32Target, U32Target) {
         let gate = U32SubtractionGate::<F, D>::new_from_config(&self.config);
         let (row, copy) = self.find_slot(gate, &[], &[]);
@@ -326,7 +338,8 @@ mod tests {
     use anyhow::Result;
     use plonky2::iop::witness::PartialWitness;
     use plonky2::plonk::circuit_data::CircuitConfig;
-    use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
+    use plonky2::plonk::config::GenericConfig;
+    use plonky2::plonk::config::PoseidonGoldilocksConfig;
     use rand::rngs::OsRng;
     use rand::Rng;
 

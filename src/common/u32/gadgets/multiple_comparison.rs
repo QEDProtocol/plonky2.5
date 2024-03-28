@@ -3,15 +3,16 @@ use alloc::vec::Vec;
 
 use plonky2::field::extension::Extendable;
 use plonky2::hash::hash_types::RichField;
-use plonky2::iop::target::{BoolTarget, Target};
+use plonky2::iop::target::BoolTarget;
+use plonky2::iop::target::Target;
 use plonky2::plonk::circuit_builder::CircuitBuilder;
 use plonky2::util::ceil_div_usize;
 
 use super::super::gadgets::arithmetic_u32::U32Target;
 use super::super::gates::comparison::ComparisonGate;
 
-/// Returns true if a is less than or equal to b, considered as base-`2^num_bits` limbs of a large value.
-/// This range-checks its inputs.
+/// Returns true if a is less than or equal to b, considered as
+/// base-`2^num_bits` limbs of a large value. This range-checks its inputs.
 pub fn list_le_circuit<F: RichField + Extendable<D>, const D: usize>(
     builder: &mut CircuitBuilder<F, D>,
     a: Vec<Target>,
@@ -60,8 +61,9 @@ pub fn list_le_circuit<F: RichField + Extendable<D>, const D: usize>(
         result = builder.mul_add(these_limbs_equal, result, these_limbs_less_than);
     }
 
-    // `result` being boolean is an invariant, maintained because its new value is always
-    // `x * result + y`, where `x` and `y` are booleans that are not simultaneously true.
+    // `result` being boolean is an invariant, maintained because its new value is
+    // always `x * result + y`, where `x` and `y` are booleans that are not
+    // simultaneously true.
     BoolTarget::new_unsafe(result)
 }
 
@@ -84,7 +86,8 @@ mod tests {
     use plonky2::field::types::Field;
     use plonky2::iop::witness::PartialWitness;
     use plonky2::plonk::circuit_data::CircuitConfig;
-    use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
+    use plonky2::plonk::config::GenericConfig;
+    use plonky2::plonk::config::PoseidonGoldilocksConfig;
     use rand::rngs::OsRng;
     use rand::Rng;
 

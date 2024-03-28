@@ -1,32 +1,47 @@
-//! Implementation of a Plonky2 gate for an entire Poseidon2 permutation over a state of width 12
+//! Implementation of a Plonky2 gate for an entire Poseidon2 permutation over a
+//! state of width 12
 
+use alloc::format;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
-use alloc::{format, vec};
 use core::marker::PhantomData;
-use plonky2::field::extension::quadratic::QuadraticExtension;
-use plonky2::field::goldilocks_field::GoldilocksField;
-use plonky2::hash::poseidon::PoseidonHash;
-use plonky2::plonk::config::GenericConfig;
-use plonky2::util::serialization::{Buffer, IoResult, Read, Write};
-use serde::Serialize;
 
+use plonky2::field::extension::quadratic::QuadraticExtension;
 use plonky2::field::extension::Extendable;
+use plonky2::field::goldilocks_field::GoldilocksField;
 use plonky2::field::types::Field;
 use plonky2::gates::gate::Gate;
 use plonky2::gates::util::StridedConstraintConsumer;
 use plonky2::hash::hash_types::RichField;
+use plonky2::hash::poseidon::PoseidonHash;
 use plonky2::iop::ext_target::ExtensionTarget;
-use plonky2::iop::generator::{GeneratedValues, SimpleGenerator, WitnessGeneratorRef};
+use plonky2::iop::generator::GeneratedValues;
+use plonky2::iop::generator::SimpleGenerator;
+use plonky2::iop::generator::WitnessGeneratorRef;
 use plonky2::iop::target::Target;
 use plonky2::iop::wire::Wire;
-use plonky2::iop::witness::{PartitionWitness, Witness, WitnessWrite};
+use plonky2::iop::witness::PartitionWitness;
+use plonky2::iop::witness::Witness;
+use plonky2::iop::witness::WitnessWrite;
 use plonky2::plonk::circuit_builder::CircuitBuilder;
-use plonky2::plonk::vars::{EvaluationTargets, EvaluationVars, EvaluationVarsBase};
+use plonky2::plonk::config::GenericConfig;
+use plonky2::plonk::vars::EvaluationTargets;
+use plonky2::plonk::vars::EvaluationVars;
+use plonky2::plonk::vars::EvaluationVarsBase;
+use plonky2::util::serialization::Buffer;
+use plonky2::util::serialization::IoResult;
+use plonky2::util::serialization::Read;
+use plonky2::util::serialization::Write;
+use serde::Serialize;
 
-use super::poseidon2::{
-    self, Poseidon2, Poseidon2Hash, ROUND_F_BEGIN, ROUND_F_END, ROUND_P, WIDTH,
-};
+use super::poseidon2::Poseidon2;
+use super::poseidon2::Poseidon2Hash;
+use super::poseidon2::ROUND_F_BEGIN;
+use super::poseidon2::ROUND_F_END;
+use super::poseidon2::ROUND_P;
+use super::poseidon2::WIDTH;
+use super::poseidon2::{self};
 
 /// Configuration using Poseidon2 over the Goldilocks field.
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize)]
@@ -527,11 +542,13 @@ impl<F: RichField + Extendable<D> + Poseidon2, const D: usize> SimpleGenerator<F
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-
-    use super::{Poseidon2Gate, Poseidon2GoldilocksConfig};
     use plonky2::field::goldilocks_field::GoldilocksField;
-    use plonky2::gates::gate_testing::{test_eval_fns, test_low_degree};
+    use plonky2::gates::gate_testing::test_eval_fns;
+    use plonky2::gates::gate_testing::test_low_degree;
     use plonky2::plonk::config::GenericConfig;
+
+    use super::Poseidon2Gate;
+    use super::Poseidon2GoldilocksConfig;
 
     #[test]
     fn wire_indices() {

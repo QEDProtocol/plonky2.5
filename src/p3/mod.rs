@@ -8,30 +8,23 @@ pub mod serde;
 pub mod utils;
 pub mod verifier;
 
-use crate::{
-    common::{
-        richer_field::RicherField,
-        u32::{
-            arithmetic_u32::U32Target, binary_u32::CircuitBuilderBU32,
-            interleaved_u32::CircuitBuilderB32,
-        },
-    },
-    p3::{
-        air::Air,
-        challenger::DuplexChallengerTarget,
-        serde::{
-            fri::FriConfig,
-            proof::{P3Config, P3ProofField, Proof},
-        },
-        utils::log2_ceil_usize,
-        verifier::CircuitBuilderP3Verifier,
-    },
-};
-use plonky2::{
-    field::extension::Extendable,
-    iop::target::Target,
-    plonk::{circuit_builder::CircuitBuilder, config::AlgebraicHasher},
-};
+use plonky2::field::extension::Extendable;
+use plonky2::iop::target::Target;
+use plonky2::plonk::circuit_builder::CircuitBuilder;
+use plonky2::plonk::config::AlgebraicHasher;
+
+use crate::common::richer_field::RicherField;
+use crate::common::u32::arithmetic_u32::U32Target;
+use crate::common::u32::binary_u32::CircuitBuilderBU32;
+use crate::common::u32::interleaved_u32::CircuitBuilderB32;
+use crate::p3::air::Air;
+use crate::p3::challenger::DuplexChallengerTarget;
+use crate::p3::serde::fri::FriConfig;
+use crate::p3::serde::proof::P3Config;
+use crate::p3::serde::proof::P3ProofField;
+use crate::p3::serde::proof::Proof;
+use crate::p3::utils::log2_ceil_usize;
+use crate::p3::verifier::CircuitBuilderP3Verifier;
 
 pub trait CircuitBuilderP3Arithmetic<F: RicherField + Extendable<D>, const D: usize> {
     fn p3_constant(&mut self, value: impl Into<u64>) -> Target;
@@ -157,18 +150,19 @@ impl<F: RicherField + Extendable<D>, const D: usize> CircuitBuilderP3Arithmetic<
 #[cfg(test)]
 mod tests {
 
-    use plonky2::{
-        field::{goldilocks_field::GoldilocksField, types::Field},
-        hash::poseidon::PoseidonHash,
-        iop::witness::{PartialWitness, WitnessWrite},
-        plonk::{circuit_data::CircuitConfig, config::PoseidonGoldilocksConfig},
-    };
+    use plonky2::field::goldilocks_field::GoldilocksField;
+    use plonky2::field::types::Field;
+    use plonky2::hash::poseidon::PoseidonHash;
+    use plonky2::iop::witness::PartialWitness;
+    use plonky2::iop::witness::WitnessWrite;
+    use plonky2::plonk::circuit_data::CircuitConfig;
+    use plonky2::plonk::config::PoseidonGoldilocksConfig;
     use rand::Rng;
 
-    use crate::p3::{
-        air::VerifierConstraintFolder, extension::CircuitBuilderP3ExtArithmetic,
-        serde::proof::BinomialExtensionField, utils::reverse_bits_len,
-    };
+    use crate::p3::air::VerifierConstraintFolder;
+    use crate::p3::extension::CircuitBuilderP3ExtArithmetic;
+    use crate::p3::serde::proof::BinomialExtensionField;
+    use crate::p3::utils::reverse_bits_len;
 
     pub const NUM_FIBONACCI_COLS: usize = 3;
 
