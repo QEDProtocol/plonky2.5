@@ -1,8 +1,8 @@
+use alloc::format;
 use alloc::string::String;
+use alloc::vec;
 use alloc::vec::Vec;
-use alloc::{format, vec};
 use core::marker::PhantomData;
-use plonky2::util::serialization::{Buffer, IoResult, Read, Write};
 
 use itertools::unfold;
 use plonky2::field::extension::Extendable;
@@ -13,18 +13,28 @@ use plonky2::gates::packed_util::PackedEvaluableBase;
 use plonky2::gates::util::StridedConstraintConsumer;
 use plonky2::hash::hash_types::RichField;
 use plonky2::iop::ext_target::ExtensionTarget;
-use plonky2::iop::generator::{GeneratedValues, SimpleGenerator, WitnessGeneratorRef};
+use plonky2::iop::generator::GeneratedValues;
+use plonky2::iop::generator::SimpleGenerator;
+use plonky2::iop::generator::WitnessGeneratorRef;
 use plonky2::iop::target::Target;
 use plonky2::iop::wire::Wire;
-use plonky2::iop::witness::{PartitionWitness, Witness, WitnessWrite};
+use plonky2::iop::witness::PartitionWitness;
+use plonky2::iop::witness::Witness;
+use plonky2::iop::witness::WitnessWrite;
 use plonky2::plonk::circuit_builder::CircuitBuilder;
 use plonky2::plonk::circuit_data::CircuitConfig;
-use plonky2::plonk::vars::{
-    EvaluationTargets, EvaluationVars, EvaluationVarsBase, EvaluationVarsBaseBatch,
-    EvaluationVarsBasePacked,
-};
+use plonky2::plonk::vars::EvaluationTargets;
+use plonky2::plonk::vars::EvaluationVars;
+use plonky2::plonk::vars::EvaluationVarsBase;
+use plonky2::plonk::vars::EvaluationVarsBaseBatch;
+use plonky2::plonk::vars::EvaluationVarsBasePacked;
+use plonky2::util::serialization::Buffer;
+use plonky2::util::serialization::IoResult;
+use plonky2::util::serialization::Read;
+use plonky2::util::serialization::Write;
 
-/// A gate to perform a basic mul-add on 32-bit values (we assume they are range-checked beforehand).
+/// A gate to perform a basic mul-add on 32-bit values (we assume they are
+/// range-checked beforehand).
 #[derive(Copy, Clone, Debug)]
 pub struct U32ArithmeticGate<F: RichField + Extendable<D>, const D: usize> {
     pub num_ops: usize,
@@ -118,8 +128,8 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for U32ArithmeticG
                 // If this is zero, the diff is invertible, so the high limb is not `u32::MAX`.
                 // inverse * diff - 1
                 let hi_not_max = inverse * diff - one;
-                // If this is zero, either the high limb is not `u32::MAX`, or the low limb is zero.
-                // hi_not_max * limb_0_u32
+                // If this is zero, either the high limb is not `u32::MAX`, or the low limb is
+                // zero. hi_not_max * limb_0_u32
                 let hi_not_max_or_lo_zero = hi_not_max * output_low;
 
                 constraints.push(hi_not_max_or_lo_zero);
@@ -196,7 +206,8 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for U32ArithmeticG
                 let diff = builder.sub_extension(u32_max, output_high);
                 // If this is zero, the diff is invertible, so the high limb is not `u32::MAX`.
                 let hi_not_max = builder.mul_sub_extension(inverse, diff, one);
-                // If this is zero, either the high limb is not `u32::MAX`, or the low limb is zero.
+                // If this is zero, either the high limb is not `u32::MAX`, or the low limb is
+                // zero.
                 let hi_not_max_or_lo_zero = builder.mul_extension(hi_not_max, output_low);
 
                 constraints.push(hi_not_max_or_lo_zero);
@@ -319,8 +330,8 @@ impl<F: RichField + Extendable<D>, const D: usize> PackedEvaluableBase<F, D>
                 // If this is zero, the diff is invertible, so the high limb is not `u32::MAX`.
                 // inverse * diff - 1
                 let hi_not_max = inverse * diff - one;
-                // If this is zero, either the high limb is not `u32::MAX`, or the low limb is zero.
-                // hi_not_max * limb_0_u32
+                // If this is zero, either the high limb is not `u32::MAX`, or the low limb is
+                // zero. hi_not_max * limb_0_u32
                 let hi_not_max_or_lo_zero = hi_not_max * output_low;
 
                 yield_constr.one(hi_not_max_or_lo_zero);
@@ -458,9 +469,11 @@ mod tests {
     use anyhow::Result;
     use plonky2::field::goldilocks_field::GoldilocksField;
     use plonky2::field::types::Sample;
-    use plonky2::gates::gate_testing::{test_eval_fns, test_low_degree};
+    use plonky2::gates::gate_testing::test_eval_fns;
+    use plonky2::gates::gate_testing::test_low_degree;
     use plonky2::hash::hash_types::HashOut;
-    use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
+    use plonky2::plonk::config::GenericConfig;
+    use plonky2::plonk::config::PoseidonGoldilocksConfig;
     use rand::rngs::OsRng;
     use rand::Rng;
 

@@ -8,21 +8,31 @@ use plonky2::gates::packed_util::PackedEvaluableBase;
 use plonky2::gates::util::StridedConstraintConsumer;
 use plonky2::hash::hash_types::RichField;
 use plonky2::iop::ext_target::ExtensionTarget;
-use plonky2::iop::generator::{GeneratedValues, SimpleGenerator, WitnessGeneratorRef};
+use plonky2::iop::generator::GeneratedValues;
+use plonky2::iop::generator::SimpleGenerator;
+use plonky2::iop::generator::WitnessGeneratorRef;
 use plonky2::iop::target::Target;
 use plonky2::iop::wire::Wire;
-use plonky2::iop::witness::{PartitionWitness, Witness, WitnessWrite};
+use plonky2::iop::witness::PartitionWitness;
+use plonky2::iop::witness::Witness;
+use plonky2::iop::witness::WitnessWrite;
 use plonky2::plonk::circuit_builder::CircuitBuilder;
 use plonky2::plonk::circuit_data::CircuitConfig;
-use plonky2::plonk::plonk_common::{reduce_with_powers, reduce_with_powers_ext_circuit};
-use plonky2::plonk::vars::{
-    EvaluationTargets, EvaluationVars, EvaluationVarsBase, EvaluationVarsBaseBatch,
-    EvaluationVarsBasePacked,
-};
-use plonky2::util::serialization::{Buffer, IoResult, Read, Write};
+use plonky2::plonk::plonk_common::reduce_with_powers;
+use plonky2::plonk::plonk_common::reduce_with_powers_ext_circuit;
+use plonky2::plonk::vars::EvaluationTargets;
+use plonky2::plonk::vars::EvaluationVars;
+use plonky2::plonk::vars::EvaluationVarsBase;
+use plonky2::plonk::vars::EvaluationVarsBaseBatch;
+use plonky2::plonk::vars::EvaluationVarsBasePacked;
+use plonky2::util::serialization::Buffer;
+use plonky2::util::serialization::IoResult;
+use plonky2::util::serialization::Read;
+use plonky2::util::serialization::Write;
 
-/// Note: This gate should not be used for arbitrary targets, its specific use case
-/// is to be applied to the sum of the outputs of two instances of the U32InterleaveGate.
+/// Note: This gate should not be used for arbitrary targets, its specific use
+/// case is to be applied to the sum of the outputs of two instances of the
+/// U32InterleaveGate.
 ///
 /// Given a Goldilocks field element, treat it as 0bxyxyxy...
 /// and split it into two U32Targets, 0bxxx... and 0byyy...
@@ -53,7 +63,8 @@ impl UninterleaveToU32Gate {
 
     // These could be consts, but let's make them as functions so we can more easily
     // extend to multiple operations in the gate in an optimized version if needed.
-    // This gate uses 67 wires, so we should be able to fit in two of them in the standard config
+    // This gate uses 67 wires, so we should be able to fit in two of them in the
+    // standard config
     pub fn wire_ith_x_interleaved(&self, i: usize) -> usize {
         debug_assert!(i < self.num_ops);
         Self::routed_wires_per_op() * i
@@ -75,15 +86,20 @@ impl UninterleaveToU32Gate {
     pub const NUM_BITS: usize = 64;
     pub const B: usize = 2; // If we want we can make this a type parameter, as in https://github.com/mir-protocol/plonky2/blob/main/plonky2/src/gates/base_sum.rs
 
-    /// TODO: Do we need to indicate that these don't have to be wirable, or can the builder figure it out on its own?
-    /// I suspect that we might have to figure out how to prevent the builder from placing these in wirable columns.
-    /// They shouldn't be constants since we have to supply them in the witness.
+    /// TODO: Do we need to indicate that these don't have to be wirable, or can
+    /// the builder figure it out on its own? I suspect that we might have
+    /// to figure out how to prevent the builder from placing these in wirable
+    /// columns. They shouldn't be constants since we have to supply them in
+    /// the witness.
     ///
-    /// This represents the full binary representation of the interleaved input x
+    /// This represents the full binary representation of the interleaved input
+    /// x
     ///
-    /// Make sure the inputs are big-endian — this is out of line with the rest of the plonky2 repo, but we
-    /// specifically need our interleaved representation to be big-endian in order to fit in the field, so
-    /// it's better to be explicit about this from the beginning when assigning the wire values
+    /// Make sure the inputs are big-endian — this is out of line with the rest
+    /// of the plonky2 repo, but we specifically need our interleaved
+    /// representation to be big-endian in order to fit in the field, so
+    /// it's better to be explicit about this from the beginning when assigning
+    /// the wire values
     pub fn wires_ith_bit_decomposition(&self, i: usize) -> Range<usize> {
         let start = self.num_ops * Self::routed_wires_per_op();
         (start + Self::NUM_BITS * i)..(start + Self::NUM_BITS * (i + 1))
@@ -103,15 +119,18 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for UninterleaveTo
             let bits = vars.local_wires[self.wires_ith_bit_decomposition(i)].to_vec();
 
             // Check 1: Ensure that the decomposition matches the input
-            // Remember that the bits are big-endian. The reduce_with_powers function takes a little-endian representation, so we reverse the input.
-            // The function just reverses it back again when it does the computation but it's cleaner to re-use the existing code, this isn't a bottleneck
+            // Remember that the bits are big-endian. The reduce_with_powers function takes
+            // a little-endian representation, so we reverse the input.
+            // The function just reverses it back again when it does the computation but
+            // it's cleaner to re-use the existing code, this isn't a bottleneck
             let computed_x_interleaved = reduce_with_powers(
                 bits.iter().rev(),
                 F::Extension::from_canonical_usize(Self::B),
             );
             constraints.push(computed_x_interleaved - x_interleaved);
 
-            // Check 2: Ensure that the even-index bits in the decomposition match the x_evens value, same for odds
+            // Check 2: Ensure that the even-index bits in the decomposition match the
+            // x_evens value, same for odds
             let x_evens = vars.local_wires[self.wire_ith_x_evens(i)];
             let x_odds = vars.local_wires[self.wire_ith_x_odds(i)];
 
@@ -157,13 +176,16 @@ impl<F: RichField + Extendable<D>, const D: usize> Gate<F, D> for UninterleaveTo
             let bits_reversed: Vec<ExtensionTarget<D>> = bits.clone().into_iter().rev().collect();
 
             // Check 1: Ensure that the decomposition matches the input
-            // Remember that the bits are big-endian. The reduce_with_powers function takes a little-endian representation, so we reverse the input.
-            // The function just reverses it back again when it does the computation but it's cleaner to re-use the existing code, this isn't a bottleneck
+            // Remember that the bits are big-endian. The reduce_with_powers function takes
+            // a little-endian representation, so we reverse the input.
+            // The function just reverses it back again when it does the computation but
+            // it's cleaner to re-use the existing code, this isn't a bottleneck
             let computed_x_interleaved =
                 reduce_with_powers_ext_circuit(builder, &bits_reversed, base);
             constraints.push(builder.sub_extension(computed_x_interleaved, x_interleaved));
 
-            // Check 2: Ensure that the even-index bits in the decomposition match the x_evens value, same for odds
+            // Check 2: Ensure that the even-index bits in the decomposition match the
+            // x_evens value, same for odds
             let x_evens = vars.local_wires[self.wire_ith_x_evens(i)];
             let x_odds = vars.local_wires[self.wire_ith_x_odds(i)];
 
@@ -273,13 +295,16 @@ impl<F: RichField + Extendable<D>, const D: usize> PackedEvaluableBase<F, D>
             let bits = vars.local_wires.view(self.wires_ith_bit_decomposition(i));
 
             // Check 1: Ensure that the decomposition matches the input
-            // Remember that the bits are big-endian. The reduce_with_powers function takes a little-endian representation, so we reverse the input.
-            // The function just reverses it back again when it does the computation but it's cleaner to re-use the existing code, this isn't a bottleneck
+            // Remember that the bits are big-endian. The reduce_with_powers function takes
+            // a little-endian representation, so we reverse the input.
+            // The function just reverses it back again when it does the computation but
+            // it's cleaner to re-use the existing code, this isn't a bottleneck
             let computed_x_interleaved =
                 reduce_with_powers(bits.iter().rev(), F::from_canonical_usize(Self::B));
             yield_constr.one(computed_x_interleaved - x_interleaved);
 
-            // Check 2: Ensure that the even-index bits in the decomposition match the x_evens value
+            // Check 2: Ensure that the even-index bits in the decomposition match the
+            // x_evens value
             let x_evens = vars.local_wires[self.wire_ith_x_evens(i)];
             let x_odds = vars.local_wires[self.wire_ith_x_odds(i)];
 
@@ -316,7 +341,8 @@ pub struct UninterleaveToU32Generator {
     i: usize,
 }
 
-// Populate the bit wires and the x_interleaved wire, given that the x wire's value has been set
+// Populate the bit wires and the x_interleaved wire, given that the x wire's
+// value has been set
 impl<F: RichField> SimpleGenerator<F> for UninterleaveToU32Generator {
     fn dependencies(&self) -> Vec<Target> {
         let local_target = |column| Target::wire(self.row, column);
@@ -392,8 +418,10 @@ impl<F: RichField> SimpleGenerator<F> for UninterleaveToU32Generator {
 mod tests {
     use anyhow::Result;
     use plonky2::field::goldilocks_field::GoldilocksField;
-    use plonky2::gates::gate_testing::{test_eval_fns, test_low_degree};
-    use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
+    use plonky2::gates::gate_testing::test_eval_fns;
+    use plonky2::gates::gate_testing::test_low_degree;
+    use plonky2::plonk::config::GenericConfig;
+    use plonky2::plonk::config::PoseidonGoldilocksConfig;
 
     use super::*;
 

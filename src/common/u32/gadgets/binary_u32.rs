@@ -113,13 +113,11 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilderBU32<F, D>
 #[cfg(test)]
 mod tests {
     use plonky2::field::types::Field;
-    use plonky2::{
-        iop::witness::{PartialWitness, WitnessWrite},
-        plonk::{
-            circuit_data::CircuitConfig,
-            config::{GenericConfig, PoseidonGoldilocksConfig},
-        },
-    };
+    use plonky2::iop::witness::PartialWitness;
+    use plonky2::iop::witness::WitnessWrite;
+    use plonky2::plonk::circuit_data::CircuitConfig;
+    use plonky2::plonk::config::GenericConfig;
+    use plonky2::plonk::config::PoseidonGoldilocksConfig;
 
     use super::*;
 

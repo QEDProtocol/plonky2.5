@@ -1,15 +1,13 @@
-use plonky2::{
-    field::extension::Extendable, iop::target::Target, plonk::circuit_builder::CircuitBuilder,
-};
+use plonky2::field::extension::Extendable;
+use plonky2::iop::target::Target;
+use plonky2::plonk::circuit_builder::CircuitBuilder;
 
-use crate::{
-    common::richer_field::RicherField,
-    p3::{
-        extension::CircuitBuilderP3ExtArithmetic,
-        serde::{proof::BinomialExtensionField, LagrangeSelectors},
-        utils::{log2_ceil_usize, log2_strict_usize},
-    },
-};
+use crate::common::richer_field::RicherField;
+use crate::p3::extension::CircuitBuilderP3ExtArithmetic;
+use crate::p3::serde::proof::BinomialExtensionField;
+use crate::p3::serde::LagrangeSelectors;
+use crate::p3::utils::log2_ceil_usize;
+use crate::p3::utils::log2_strict_usize;
 
 #[derive(Clone, Copy, Debug)]
 pub struct TwoAdicMultiplicativeCoset {

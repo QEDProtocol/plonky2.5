@@ -1,13 +1,12 @@
-use plonky2::{
-    field::extension::Extendable,
-    iop::target::{BoolTarget, Target},
-    plonk::circuit_builder::CircuitBuilder,
-};
+use plonky2::field::extension::Extendable;
+use plonky2::iop::target::BoolTarget;
+use plonky2::iop::target::Target;
+use plonky2::plonk::circuit_builder::CircuitBuilder;
 
-use crate::{
-    common::richer_field::RicherField,
-    p3::{constants::EXT_DEGREE, serde::proof::BinomialExtensionField, CircuitBuilderP3Arithmetic},
-};
+use crate::common::richer_field::RicherField;
+use crate::p3::constants::EXT_DEGREE;
+use crate::p3::serde::proof::BinomialExtensionField;
+use crate::p3::CircuitBuilderP3Arithmetic;
 
 pub trait CircuitBuilderP3ExtArithmetic<F: RicherField + Extendable<D>, const D: usize> {
     fn p3_w(&mut self) -> Target;

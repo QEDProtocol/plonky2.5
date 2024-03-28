@@ -17,12 +17,12 @@ cd plonky3-fibonacci/keccak-air
 cargo run --example prove_goldilocks_poseidon2_fibonacci
 ```
 
-Clone this repo and copy the generated proof to `src/p3/`
+Clone this repo and copy the generated proof to `artifacts/`
 ```bash
 cd ...
 git clone https://github.com/QEDProtocol/plonky2.5
 cd plonky2.5
-cp ../plonky3-fibonacci/keccak-air/proof_fibonacci.json src/p3/
+cp ../plonky3-fibonacci/keccak-air/proof_fibonacci.json artifacts/
 ```
 
 Verify a plonky3 fibonacci proof in a plonky2 proof

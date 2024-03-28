@@ -1,9 +1,11 @@
 use plonky2::field::extension::Extendable;
 use plonky2::hash::hash_types::RichField;
-use plonky2::iop::target::{BoolTarget, Target};
+use plonky2::iop::target::BoolTarget;
+use plonky2::iop::target::Target;
 use plonky2::plonk::circuit_builder::CircuitBuilder;
 
-use super::super::gadgets::arithmetic_u32::{CircuitBuilderU32, U32Target};
+use super::super::gadgets::arithmetic_u32::CircuitBuilderU32;
+use super::super::gadgets::arithmetic_u32::U32Target;
 use super::super::gates::interleave_u32::U32InterleaveGate;
 use super::super::gates::uninterleave_to_b32::UninterleaveToB32Gate;
 use super::super::gates::uninterleave_to_u32::UninterleaveToU32Gate;
@@ -131,16 +133,27 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilderB32<F, D>
     /// Important! This function is unsafe!
     /// It fails for 3+ inputs all set to 0xffffffff
     ///
-    /// More generally, it fails if the sum of the three interleaved inputs for a given iteration exceeds the Goldilocks field characteristic.
-    /// In these cases, the sum gets reduced mod the field order and will produce.
-    /// If we assume the outputs for a 3-way add of interleaved u32 inputs are uniformly distributed in [0, 2^64-1] (don't think this is actually true but I think close enough),
-    /// then the odds of this happening are 1 - ((2^64-2^32+1) / (2^64-1)) = 2.3283064e-10, so it's unlikely to inhibit an honest prover trying to prove something actually correct.
+    /// More generally, it fails if the sum of the three interleaved inputs for
+    /// a given iteration exceeds the Goldilocks field characteristic.
+    /// In these cases, the sum gets reduced mod the field order and will
+    /// produce. If we assume the outputs for a 3-way add of interleaved u32
+    /// inputs are uniformly distributed in [0, 2^64-1] (don't think this is
+    /// actually true but I think close enough), then the odds of this
+    /// happening are 1 - ((2^64-2^32+1) / (2^64-1)) = 2.3283064e-10, so it's
+    /// unlikely to inhibit an honest prover trying to prove something actually
+    /// correct.
     ///
-    /// However, please keep in mind that adversarially this makes it possible in some cases to prove an invalid input hashes to the same result as a valid input.
-    /// For example, this circuit can incorrectly prove that 0xffffffff XOR 0xffffffff XOR 0xffffffff is equal to 0x0000fffe.
-    /// If you have three inputs whose XOR actually *do* evaluate to 0x0000fffe, then a malicious prover can substitute 0xffffffff for the actual inputs and still produce a valid proof.
-    /// Cases like this basically require the first half of the real result to be all 0's, so odds of roughly 1/(2^16) per input triple that this exploit appears
-    /// Currently we haven't thought of any particular attacks that can exploit this, but once again should be kept in mind.
+    /// However, please keep in mind that adversarially this makes it possible
+    /// in some cases to prove an invalid input hashes to the same result as a
+    /// valid input. For example, this circuit can incorrectly prove that
+    /// 0xffffffff XOR 0xffffffff XOR 0xffffffff is equal to 0x0000fffe.
+    /// If you have three inputs whose XOR actually *do* evaluate to 0x0000fffe,
+    /// then a malicious prover can substitute 0xffffffff for the actual inputs
+    /// and still produce a valid proof. Cases like this basically require
+    /// the first half of the real result to be all 0's, so odds of roughly
+    /// 1/(2^16) per input triple that this exploit appears Currently we
+    /// haven't thought of any particular attacks that can exploit this, but
+    /// once again should be kept in mind.
     fn unsafe_xor_many_u32(&mut self, x: &[U32Target]) -> U32Target {
         match x.len() {
             0 => self.zero_u32(),
@@ -325,16 +338,19 @@ impl<F: RichField + Extendable<D>, const D: usize> CircuitBuilderB32<F, D>
 #[cfg(test)]
 mod tests {
     use anyhow::Result;
-    use plonky2::field::types::{Field, PrimeField64};
+    use plonky2::field::types::Field;
+    use plonky2::field::types::PrimeField64;
     use plonky2::iop::witness::PartialWitness;
     use plonky2::plonk::circuit_data::CircuitConfig;
-    use plonky2::plonk::config::{GenericConfig, PoseidonGoldilocksConfig};
+    use plonky2::plonk::config::GenericConfig;
+    use plonky2::plonk::config::PoseidonGoldilocksConfig;
 
     use super::super::super::witness::WitnessU32;
     use super::*;
 
     #[test]
-    /// One hard-coded test case for now. Are there any weird edge cases that should also be explicitly covered?
+    /// One hard-coded test case for now. Are there any weird edge cases that
+    /// should also be explicitly covered?
     pub fn test_interleave_u32() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
@@ -367,7 +383,8 @@ mod tests {
     }
 
     #[test]
-    /// One hard-coded test case for now. Are there any weird edge cases that should also be explicitly covered?
+    /// One hard-coded test case for now. Are there any weird edge cases that
+    /// should also be explicitly covered?
     pub fn test_uninterleave_to_u32() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;
@@ -400,7 +417,8 @@ mod tests {
     }
 
     #[test]
-    /// One hard-coded test case for now. Are there any weird edge cases that should also be explicitly covered?
+    /// One hard-coded test case for now. Are there any weird edge cases that
+    /// should also be explicitly covered?
     pub fn test_uninterleave_to_b32() -> Result<()> {
         const D: usize = 2;
         type C = PoseidonGoldilocksConfig;

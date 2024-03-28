@@ -1,31 +1,32 @@
 use itertools::izip;
-use plonky2::{
-    field::extension::Extendable,
-    iop::target::{BoolTarget, Target},
-    plonk::{circuit_builder::CircuitBuilder, config::AlgebraicHasher},
-};
+use plonky2::field::extension::Extendable;
+use plonky2::iop::target::BoolTarget;
+use plonky2::iop::target::Target;
+use plonky2::plonk::circuit_builder::CircuitBuilder;
+use plonky2::plonk::config::AlgebraicHasher;
 
-use crate::{
-    common::richer_field::RicherField,
-    p3::{
-        air::{Air, VerifierConstraintFolder},
-        challenger::{DuplexChallenger, DuplexChallengerTarget},
-        commit,
-        constants::EXT_DEGREE,
-        extension::CircuitBuilderP3ExtArithmetic,
-        serde::{
-            fri::{FriChallenges, FriConfig, FriError},
-            proof::{
-                BinomialExtensionField, Commitment, FriProof, P3Config, P3Proof, QueryProof,
-                TwoAdicFriPcsProof,
-            },
-            two_adic::TwoAdicMultiplicativeCoset,
-            Dimensions,
-        },
-        utils::log2_strict_usize,
-        CircuitBuilderP3Arithmetic,
-    },
-};
+use crate::common::richer_field::RicherField;
+use crate::p3::air::Air;
+use crate::p3::air::VerifierConstraintFolder;
+use crate::p3::challenger::DuplexChallenger;
+use crate::p3::challenger::DuplexChallengerTarget;
+use crate::p3::commit;
+use crate::p3::constants::EXT_DEGREE;
+use crate::p3::extension::CircuitBuilderP3ExtArithmetic;
+use crate::p3::serde::fri::FriChallenges;
+use crate::p3::serde::fri::FriConfig;
+use crate::p3::serde::fri::FriError;
+use crate::p3::serde::proof::BinomialExtensionField;
+use crate::p3::serde::proof::Commitment;
+use crate::p3::serde::proof::FriProof;
+use crate::p3::serde::proof::P3Config;
+use crate::p3::serde::proof::P3Proof;
+use crate::p3::serde::proof::QueryProof;
+use crate::p3::serde::proof::TwoAdicFriPcsProof;
+use crate::p3::serde::two_adic::TwoAdicMultiplicativeCoset;
+use crate::p3::serde::Dimensions;
+use crate::p3::utils::log2_strict_usize;
+use crate::p3::CircuitBuilderP3Arithmetic;
 
 pub trait CircuitBuilderP3Verifier<F: RicherField + Extendable<D>, const D: usize>:
     CircuitBuilderP3ExtArithmetic<F, D>

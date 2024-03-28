@@ -1,20 +1,21 @@
 use std::cmp::Reverse;
 
 use itertools::Itertools;
-use plonky2::{
-    field::extension::Extendable,
-    iop::target::{BoolTarget, Target},
-    plonk::{circuit_builder::CircuitBuilder, config::AlgebraicHasher},
-};
+use plonky2::field::extension::Extendable;
+use plonky2::iop::target::BoolTarget;
+use plonky2::iop::target::Target;
+use plonky2::plonk::circuit_builder::CircuitBuilder;
+use plonky2::plonk::config::AlgebraicHasher;
 
-use crate::{
-    common::{poseidon2::poseidon2::Poseidon2Hash, richer_field::RicherField},
-    p3::{
-        constants::{CHUNK, DIGEST_ELEMS, N, RATE, WIDTH},
-        serde::Dimensions,
-        CircuitBuilderP3Arithmetic,
-    },
-};
+use crate::common::poseidon2::poseidon2::Poseidon2Hash;
+use crate::common::richer_field::RicherField;
+use crate::p3::constants::CHUNK;
+use crate::p3::constants::DIGEST_ELEMS;
+use crate::p3::constants::N;
+use crate::p3::constants::RATE;
+use crate::p3::constants::WIDTH;
+use crate::p3::serde::Dimensions;
+use crate::p3::CircuitBuilderP3Arithmetic;
 
 pub struct MerkleTreeMmcs;
 
@@ -130,12 +131,11 @@ impl MerkleTreeMmcs {
 
 #[cfg(test)]
 mod tests {
-    use plonky2::{
-        field::goldilocks_field::GoldilocksField,
-        hash::poseidon::PoseidonHash,
-        iop::witness::PartialWitness,
-        plonk::{circuit_data::CircuitConfig, config::PoseidonGoldilocksConfig},
-    };
+    use plonky2::field::goldilocks_field::GoldilocksField;
+    use plonky2::hash::poseidon::PoseidonHash;
+    use plonky2::iop::witness::PartialWitness;
+    use plonky2::plonk::circuit_data::CircuitConfig;
+    use plonky2::plonk::config::PoseidonGoldilocksConfig;
 
     use super::*;
 

@@ -1,18 +1,17 @@
-use plonky2::{
-    field::{extension::Extendable, goldilocks_field::GoldilocksField},
-    iop::{target::Target, witness::Witness},
-    plonk::circuit_builder::CircuitBuilder,
-};
-use serde::{Deserialize, Serialize};
+use plonky2::field::extension::Extendable;
+use plonky2::field::goldilocks_field::GoldilocksField;
+use plonky2::iop::target::Target;
+use plonky2::iop::witness::Witness;
+use plonky2::plonk::circuit_builder::CircuitBuilder;
+use serde::Deserialize;
+use serde::Serialize;
 
-use crate::{
-    common::richer_field::RicherField,
-    p3::{
-        constants::{DIGEST_ELEMS, EXT_DEGREE},
-        gadgets::{CircuitBuilderP3Helper, WitnessP3Helper},
-        serde::fri::FriConfig,
-    },
-};
+use crate::common::richer_field::RicherField;
+use crate::p3::constants::DIGEST_ELEMS;
+use crate::p3::constants::EXT_DEGREE;
+use crate::p3::gadgets::CircuitBuilderP3Helper;
+use crate::p3::gadgets::WitnessP3Helper;
+use crate::p3::serde::fri::FriConfig;
 
 #[derive(Copy, Clone, Default, Serialize, Deserialize)]
 pub struct Value<F> {
@@ -192,8 +191,8 @@ impl FriProof<Target> {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueryProof<F> {
-    /// For each commit phase commitment, this contains openings of a commit phase codeword at the
-    /// queried location, along with an opening proof.
+    /// For each commit phase commitment, this contains openings of a commit
+    /// phase codeword at the queried location, along with an opening proof.
     pub commit_phase_openings: Vec<CommitPhaseProofStep<F>>,
 }
 

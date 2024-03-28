@@ -1,9 +1,8 @@
-use plonky2::{
-    field::extension::Extendable,
-    hash::hash_types::RichField,
-    iop::{target::Target, witness::Witness},
-    plonk::circuit_builder::CircuitBuilder,
-};
+use plonky2::field::extension::Extendable;
+use plonky2::hash::hash_types::RichField;
+use plonky2::iop::target::Target;
+use plonky2::iop::witness::Witness;
+use plonky2::plonk::circuit_builder::CircuitBuilder;
 
 pub trait CircuitBuilderP3Helper<F: RichField + Extendable<D>, const D: usize> {
     fn add_2d_vec_array_inputs(&mut self, rows: usize, cols: usize) -> Vec<Vec<Target>>;

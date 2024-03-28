@@ -1,13 +1,21 @@
 use alloc::vec;
 use core::fmt::Debug;
-use plonky2::field::extension::{Extendable, FieldExtension};
-use plonky2::field::types::{Field, PrimeField64};
-use plonky2::hash::hash_types::{HashOut, RichField};
-use plonky2::hash::hashing::{compress, hash_n_to_hash_no_pad, PlonkyPermutation};
+
+use plonky2::field::extension::Extendable;
+use plonky2::field::extension::FieldExtension;
+use plonky2::field::types::Field;
+use plonky2::field::types::PrimeField64;
+use plonky2::hash::hash_types::HashOut;
+use plonky2::hash::hash_types::RichField;
+use plonky2::hash::hashing::compress;
+use plonky2::hash::hashing::hash_n_to_hash_no_pad;
+use plonky2::hash::hashing::PlonkyPermutation;
 use plonky2::iop::ext_target::ExtensionTarget;
-use plonky2::iop::target::{BoolTarget, Target};
+use plonky2::iop::target::BoolTarget;
+use plonky2::iop::target::Target;
 use plonky2::plonk::circuit_builder::CircuitBuilder;
-use plonky2::plonk::config::{AlgebraicHasher, Hasher};
+use plonky2::plonk::config::AlgebraicHasher;
+use plonky2::plonk::config::Hasher;
 use unroll::unroll_for_loops;
 
 use super::poseidon2_gate::Poseidon2Gate;
@@ -35,13 +43,14 @@ pub trait Poseidon2: PrimeField64 {
     //      R_P = 22
     //      d = 7
     //      x -- input vector
-    // P2_output  = External_0(M_E * x) * External_1 * ... * External_{R_F / 2 -1}  -- 4
+    // P2_output  = External_0(M_E * x) * External_1 * ... * External_{R_F / 2 -1}
+    // -- 4
     //            * Internal_0 * Internal_1 * ... * Internal_{R_P} -- 22
     //            * External_{R_F/2} * ... * External_{R_F - 1} -- 4
     // Preprocess
     //      M_E * x
-    // External_i = M_E * ((x_0 + c_0 ^ {i}) ^ 7, (x_1 + c_1 ^ {i}) ^ 7, ..., (x_{t - 1}} + c_{t - 1} ^ {i}) ^ 7)
-    // Note:
+    // External_i = M_E * ((x_0 + c_0 ^ {i}) ^ 7, (x_1 + c_1 ^ {i}) ^ 7, ..., (x_{t
+    // - 1}} + c_{t - 1} ^ {i}) ^ 7) Note:
     //      x_0 + c_0^{i} -- Add roundconstant
     //      _ ^ 7 -- Sbox
     //      M_E * -- Linear layer
@@ -233,7 +242,8 @@ pub trait Poseidon2: PrimeField64 {
         }
     }
 
-    // -------------------------------------- field ------------------------------------------
+    // -------------------------------------- field
+    // ------------------------------------------
     #[inline]
     fn matmul_external_field<F: FieldExtension<D, BaseField = Self>, const D: usize>(
         input: &mut [F],
@@ -367,8 +377,8 @@ pub trait Poseidon2: PrimeField64 {
             state[i] = Self::sbox_monomial(state[i]);
         }
     }
-    // -------------------------------------- circuit ----------------------------------------
-    // matmul_external_circuit
+    // -------------------------------------- circuit
+    // ---------------------------------------- matmul_external_circuit
     fn matmul_external_circuit<const D: usize>(
         builder: &mut CircuitBuilder<Self, D>,
         input: &mut [ExtensionTarget<D>; WIDTH],
@@ -662,7 +672,8 @@ pub(crate) mod test_helpers {
 
     use plonky2::field::types::Field;
 
-    use super::super::poseidon2::{Poseidon2, WIDTH};
+    use super::super::poseidon2::Poseidon2;
+    use super::super::poseidon2::WIDTH;
 
     pub(crate) fn check_test_vectors<F: Field>(test_vectors: Vec<([u64; WIDTH], [u64; WIDTH])>)
     where
